@@ -4,6 +4,39 @@ import 'med_matcher.dart';
 import 'time_resolver.dart';
 
 class ProposalValidator {
+  /// Deterministic range check shared by the validator and the confirm
+  /// use case (defense in depth: out-of-range values are never persisted,
+  /// even if a flagged proposal somehow reaches confirm).
+  static String? measurementRangeError(
+      String type, num value1, num? value2, String unit) {
+    final val = value1.toDouble();
+    switch (type) {
+      case 'blood_pressure':
+        final e = Validators.bloodPressureSystolic(val);
+        if (e != null) return e;
+        if (value2 != null) {
+          return Validators.bloodPressureDiastolic(value2.toDouble());
+        }
+        return null;
+      case 'pulse':
+        return Validators.pulse(val);
+      case 'temperature':
+        return unit.toLowerCase() == 'f'
+            ? Validators.temperatureFahrenheit(val)
+            : Validators.temperatureCelsius(val);
+      case 'weight':
+        return unit.toLowerCase() == 'lbs'
+            ? Validators.weightLbs(val)
+            : Validators.weightKg(val);
+      case 'blood_glucose':
+        return unit.toLowerCase() == 'mmol/l'
+            ? Validators.bloodGlucoseMmolL(val)
+            : Validators.bloodGlucoseMgDl(val);
+      default:
+        return null;
+    }
+  }
+
   final List<String> activeMeds;
   final DateTime now;
   final String transcript;
@@ -39,18 +72,19 @@ class ProposalValidator {
 
   ProposedMedicationTaken? _validateMedTaken(ProposedMedicationTaken record) {
     var match = MedMatcher.match(record.medicationName, activeMeds);
-    if (match.status == MatchStatus.unmatched) {
-      return null; // Drop or unmatched? Spec: "else unmatched". Wait, if unmatched, maybe we shouldn't drop but mark it unmatched.
-      // But spec says: "Unmatched -> 'Hindi nakalista ang X. Idagdag?' It never creates a taken for a drug that isn't scheduled without explicit confirm."
-      // Let's set flag to check.
-    }
-    
+    // Spec §5.5: unmatched is NOT silently dropped — it stays visible as a
+    // Check card ("Hindi nakalista ang X"). Confirm never writes a "taken"
+    // for an unscheduled drug (the use case finds no schedule and leaves
+    // the proposal pending), so the caregiver must act on it explicitly.
     ProposalFlag flag = (match.status == MatchStatus.sure) ? ProposalFlag.sure : ProposalFlag.check;
 
     if (record.timePhrase != null) {
       DateTime? resolvedTime = TimeResolver.resolve(record.timePhrase!, now);
       if (resolvedTime != null && resolvedTime.isAfter(now)) {
         return null; // Reject future time for taken
+      }
+      if (resolvedTime == null) {
+        flag = ProposalFlag.check; // Ambiguous time → Check (spec S-3)
       }
     }
 
@@ -76,42 +110,8 @@ class ProposalValidator {
 
   ProposedMeasurement? _validateMeasurement(ProposedMeasurement record) {
     ProposalFlag flag = ProposalFlag.sure;
-    String? error;
-    
-    double val = record.value1.toDouble();
-
-    switch (record.type) {
-      case 'blood_pressure':
-        error = Validators.bloodPressureSystolic(val);
-        if (error == null && record.value2 != null) {
-          error = Validators.bloodPressureDiastolic(record.value2!.toDouble());
-        }
-        break;
-      case 'pulse':
-        error = Validators.pulse(val);
-        break;
-      case 'temperature':
-        if (record.unit.toLowerCase() == 'f') {
-          error = Validators.temperatureFahrenheit(val);
-        } else {
-          error = Validators.temperatureCelsius(val);
-        }
-        break;
-      case 'weight':
-        if (record.unit.toLowerCase() == 'lbs') {
-          error = Validators.weightLbs(val);
-        } else {
-          error = Validators.weightKg(val);
-        }
-        break;
-      case 'blood_glucose':
-        if (record.unit.toLowerCase() == 'mmol/l') {
-          error = Validators.bloodGlucoseMmolL(val);
-        } else {
-          error = Validators.bloodGlucoseMgDl(val);
-        }
-        break;
-    }
+    final error = measurementRangeError(
+        record.type, record.value1, record.value2, record.unit);
 
     if (error != null) {
       flag = ProposalFlag.check;
@@ -121,6 +121,10 @@ class ProposalValidator {
       DateTime? resolvedTime = TimeResolver.resolve(record.timePhrase!, now);
       if (resolvedTime != null && resolvedTime.isAfter(now)) {
         return null; // Reject future time
+      }
+      // Unresolvable phrase → ambiguous time → Check (spec S-3), not Sure.
+      if (resolvedTime == null) {
+        flag = ProposalFlag.check;
       }
     }
 

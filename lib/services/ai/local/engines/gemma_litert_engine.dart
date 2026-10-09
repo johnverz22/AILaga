@@ -296,7 +296,10 @@ You convert $target into structured record proposals for a caregiving app.
 
 Rules:
 - Copy numbers EXACTLY as written/said. Never invent or correct values.
-- Include source_quote: a verbatim substring of the heard text (or "" for images).
+- Include source_quote: a verbatim substring of the transcript field you output
+  (for images, the transcript is the text you read off the photo). Proposals
+  whose quote is not found in the transcript are dropped by the app.
+- If a field is unreadable, leave it null. Never guess a dose or a number.
 - If nothing recordable is present, return an empty calls array.
 - Known medications: [${meds.isEmpty ? 'none' : meds}]
 - Now: ${ctx.now.toIso8601String()} (${ctx.timezone})
