@@ -43,7 +43,7 @@ When starting work, read these files first:
 ### Key rules for your agent:
 - **Use A's providers**: Don't create duplicate database queries. Use the Riverpod providers from `*_providers.dart` files
 - **If A's providers aren't ready**: Create mock providers with sample data in your own files, then swap later
-- **Template-based summaries**: Care Brief and Handover use deterministic templates, not AI
+- **Template-based summaries**: Brief/Handover facts are deterministic. Prose may be AI-narrated only through `NarrationVerifier`; template is the fallback
 - **Source traceability**: Every statement in a brief/handover must reference a source record
 - **No fabrication**: If data is missing, say "No data" — never generate fake values
 - **PDF accuracy**: Every value in the PDF must match the source database record

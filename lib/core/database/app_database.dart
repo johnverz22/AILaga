@@ -65,6 +65,8 @@ class MedicationOccurrences extends Table {
   TextColumn get status => text().withDefault(const Constant('pending'))();
   // pending, taken, skipped, not_confirmed
   DateTimeColumn get statusUpdatedAt => dateTime().nullable()();
+  TextColumn get statusSource =>
+      text().withDefault(const Constant('manual'))(); // manual, ai_assisted
   TextColumn get statusNote => text().nullable()();
   TextColumn get recordedByLabel => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -91,7 +93,7 @@ class MeasurementLogs extends Table {
   DateTimeColumn get measuredAt => dateTime()();
   DateTimeColumn get recordedAt => dateTime()();
   TextColumn get sourceType =>
-      text().withDefault(const Constant('manual'))(); // manual, health_connect, other
+      text().withDefault(const Constant('manual'))(); // manual, health_connect, ai_assisted, other
   TextColumn get sourceLabel => text().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -165,6 +167,36 @@ class AppSettings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+@DataClassName('AiCapture')
+class AiCaptures extends Table {
+  TextColumn get id => text()();
+  TextColumn get careRecipientId => text().references(CareRecipients, #id)();
+  TextColumn get modality => text()(); // voice, snap, text
+  TextColumn get originalText => text()();
+  TextColumn get engineId => text()();
+  TextColumn get modelId => text()();
+  IntColumn get latencyMs => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('AiProposal')
+class AiProposals extends Table {
+  TextColumn get id => text()();
+  TextColumn get captureId => text().references(AiCaptures, #id)();
+  TextColumn get kind => text()();
+  TextColumn get payloadJson => text()();
+  TextColumn get sourceQuote => text().nullable()();
+  TextColumn get flag => text().nullable()();
+  TextColumn get status => text()(); // pending, confirmed, discarded
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(tables: [
   CareRecipients,
   FamilyContacts,
@@ -175,6 +207,8 @@ class AppSettings extends Table {
   CareNotes,
   EmergencyEvents,
   AppSettings,
+  AiCaptures,
+  AiProposals,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -183,7 +217,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -210,6 +244,13 @@ class AppDatabase extends _$AppDatabase {
             'CREATE INDEX IF NOT EXISTS idx_care_notes_observed_at '
             'ON care_notes (observed_at)',
           );
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(medicationOccurrences, medicationOccurrences.statusSource);
+            await m.createTable(aiCaptures);
+            await m.createTable(aiProposals);
+          }
         },
         beforeOpen: (details) async {
           // Enforce foreign key constraints.

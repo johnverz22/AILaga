@@ -116,7 +116,7 @@ feature_name/
 
 1. **Offline-first**: No network dependency for any P0 feature
 2. **No accounts**: Local data only, no auth in MVP
-3. **AI is optional**: Deterministic template fallback for all summaries
+3. **Local AI handles capture, narration and query**: Deterministic code is the source of truth, the validator and the fallback
 4. **Emergency independence**: SOS works without AI, network, or wearable
 5. **Idempotent occurrences**: Medication occurrence generation is safe to re-run
 6. **Source tracking**: Every record tracks its origin (manual, AI, imported)

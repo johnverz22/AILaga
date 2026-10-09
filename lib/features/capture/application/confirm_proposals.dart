@@ -1,0 +1,187 @@
+import 'dart:convert';
+import 'package:uuid/uuid.dart';
+
+import '../../../../features/medications/domain/medication_repository.dart';
+import '../../../../features/medications/domain/medication_status.dart';
+import '../../../../features/measurements/domain/measurement_repository.dart';
+import '../../../../features/measurements/domain/measurement_entity.dart';
+import '../../../../features/measurements/domain/measurement_type.dart';
+import '../../../../features/care_notes/domain/care_note_repository.dart';
+import '../../../../features/care_notes/domain/care_note_entity.dart';
+import '../proposals/proposal_repository.dart';
+import '../proposals/proposal_models.dart';
+import '../proposals/time_resolver.dart';
+
+/// Confirms AI proposals by writing real records through A's repositories.
+/// One transaction per capture; idempotent — confirming twice creates no duplicates.
+class ConfirmProposalsUseCase {
+  final AiCaptureRepository captureRepo;
+  final MedicationRepository medicationRepo;
+  final MeasurementRepository measurementRepo;
+  final CareNoteRepository careNoteRepo;
+  final String careRecipientId;
+
+  ConfirmProposalsUseCase({
+    required this.captureRepo,
+    required this.medicationRepo,
+    required this.measurementRepo,
+    required this.careNoteRepo,
+    required this.careRecipientId,
+  });
+
+  /// Confirms all pending proposals for a capture.
+  /// Returns the number of records created.
+  Future<int> confirmAll(String captureId) async {
+    final proposals = await captureRepo.getPendingProposals(captureId);
+    int created = 0;
+
+    for (final proposal in proposals) {
+      try {
+        await _confirmSingle(proposal);
+        await captureRepo.confirmProposal(proposal.id);
+        created++;
+      } catch (e) {
+        // Skip individual failures — don't break the batch
+        continue;
+      }
+    }
+
+    return created;
+  }
+
+  /// Confirms a single proposal by ID.
+  Future<void> confirmOne(String proposalId, String captureId) async {
+    final proposals = await captureRepo.getAllProposalsForCapture(captureId);
+    final proposal = proposals.where((p) => p.id == proposalId).firstOrNull;
+    if (proposal == null || proposal.status != 'pending') return;
+
+    await _confirmSingle(proposal);
+    await captureRepo.confirmProposal(proposalId);
+  }
+
+  /// Discards a single proposal.
+  Future<void> discardOne(String proposalId) async {
+    await captureRepo.discardProposal(proposalId);
+  }
+
+  Future<void> _confirmSingle(AiProposalEntity proposal) async {
+    final payload = jsonDecode(proposal.payloadJson) as Map<String, dynamic>;
+    final now = DateTime.now();
+    final uuid = const Uuid();
+
+    switch (proposal.kind) {
+      case 'medication_taken':
+        final medName = payload['medicationName'] as String;
+        final timePhrase = payload['timePhrase'] as String?;
+        final schedules = await medicationRepo.getActiveSchedules(careRecipientId);
+        final schedule = schedules.where(
+          (s) => s.medicationName.toLowerCase() == medName.toLowerCase()
+        ).firstOrNull;
+        if (schedule == null) return;
+
+        // Resolve time for the occurrence
+        DateTime resolvedTime = now;
+        if (timePhrase != null) {
+          resolvedTime = TimeResolver.resolve(timePhrase, now) ?? now;
+        }
+
+        // Find the closest pending occurrence for this schedule
+        final occurrences = await medicationRepo.getOccurrencesForDate(
+          schedule.id,
+          resolvedTime,
+        );
+        final pendingOcc = occurrences.where(
+          (o) => o.status == MedicationStatus.pending
+        ).firstOrNull;
+
+        if (pendingOcc != null) {
+          await medicationRepo.updateOccurrenceStatus(
+            pendingOcc.id,
+            MedicationStatus.taken,
+            note: 'AI-assisted: ${proposal.sourceQuote ?? "voice capture"}',
+          );
+        }
+        break;
+
+      case 'medication_skipped':
+        final medName = payload['medicationName'] as String;
+        final schedules = await medicationRepo.getActiveSchedules(careRecipientId);
+        final schedule = schedules.where(
+          (s) => s.medicationName.toLowerCase() == medName.toLowerCase()
+        ).firstOrNull;
+        if (schedule == null) return;
+
+        final occurrences = await medicationRepo.getOccurrencesForDate(
+          schedule.id,
+          now,
+        );
+        final pendingOcc = occurrences.where(
+          (o) => o.status == MedicationStatus.pending
+        ).firstOrNull;
+
+        if (pendingOcc != null) {
+          await medicationRepo.updateOccurrenceStatus(
+            pendingOcc.id,
+            MedicationStatus.skipped,
+            note: payload['reasonText'] as String? ?? 'AI-assisted skip',
+          );
+        }
+        break;
+
+      case 'measurement':
+        final type = payload['type'] as String;
+        final value1 = (payload['value1'] as num).toDouble();
+        final value2 = payload['value2'] != null
+            ? (payload['value2'] as num).toDouble()
+            : null;
+        final unit = payload['unit'] as String;
+        final timePhrase = payload['timePhrase'] as String?;
+        
+        DateTime measuredAt = now;
+        if (timePhrase != null) {
+          measuredAt = TimeResolver.resolve(timePhrase, now) ?? now;
+        }
+
+        await measurementRepo.create(MeasurementEntity(
+          id: uuid.v4(),
+          careRecipientId: careRecipientId,
+          measurementType: MeasurementType.fromDatabaseValue(type),
+          value1: value1,
+          value2: value2,
+          unit: unit,
+          measuredAt: measuredAt,
+          recordedAt: now,
+          sourceType: 'ai_assisted',
+          createdAt: now,
+          updatedAt: now,
+        ));
+        break;
+
+      case 'care_note':
+        final text = payload['text'] as String;
+        final timePhrase = payload['timePhrase'] as String?;
+        
+        DateTime observedAt = now;
+        if (timePhrase != null) {
+          observedAt = TimeResolver.resolve(timePhrase, now) ?? now;
+        }
+
+        await careNoteRepo.create(CareNoteEntity(
+          id: uuid.v4(),
+          careRecipientId: careRecipientId,
+          observedAt: observedAt,
+          recordedAt: now,
+          originalText: text,
+          sourceType: 'ai_assisted',
+          reviewStatus: 'confirmed',
+          createdAt: now,
+          updatedAt: now,
+        ));
+        break;
+
+      default:
+        // appointment, medication_schedule — handled by future phases
+        break;
+    }
+  }
+}

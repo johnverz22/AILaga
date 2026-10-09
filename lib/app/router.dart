@@ -20,11 +20,16 @@ import '../features/emergency/presentation/emergency_screen.dart';
 import '../features/family_contacts/presentation/family_contacts_screen.dart';
 import '../features/family_contacts/presentation/add_family_contact_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/settings/presentation/ai_privacy_panel.dart';
 import '../features/reports/presentation/reports_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
+import '../features/capture/presentation/voice_capture_screen.dart';
+import '../features/ask/presentation/ask_screen.dart';
+import '../features/capture/presentation/widgets/on_device_badge.dart';
 import '../features/care_recipient/data/care_recipient_providers.dart';
 
-// Shell Navigation Widget
+// Shell Navigation Widget — redesigned per AILaga v2 spec §4.2
+// Tabs: Ngayon · Ulat · 🎙 Capture (center FAB) · Tanong · Higit pa
 class AppShell extends StatelessWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
@@ -33,55 +38,75 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get the current location to determine selected tab
     final location = GoRouterState.of(context).uri.path;
+    final theme = Theme.of(context);
 
     int getIndex() {
-      if (location.startsWith('/medications')) return 1;
-      if (location.startsWith('/measurements')) return 2;
-      if (location.startsWith('/appointments')) return 3;
-      if (location.startsWith('/care-notes') ||
+      if (location.startsWith('/brief') || location.startsWith('/handover')) return 1;
+      if (location.startsWith('/capture')) return 2;
+      if (location.startsWith('/ask')) return 3;
+      if (location.startsWith('/medications') ||
+          location.startsWith('/measurements') ||
+          location.startsWith('/appointments') ||
+          location.startsWith('/care-notes') ||
           location.startsWith('/settings') ||
           location.startsWith('/family-contacts') ||
           location.startsWith('/reports') ||
-          location.startsWith('/care-brief') ||
-          location.startsWith('/handover') ||
-          location.startsWith('/care-recipient')) {
+          location.startsWith('/care-recipient') ||
+          location.startsWith('/ai-privacy')) {
         return 4;
       }
-      return 0; // default to Home
+      return 0; // default to Ngayon (Home)
     }
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: getIndex(),
-        onTap: (index) {
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: getIndex(),
+        onDestinationSelected: (index) {
           switch (index) {
             case 0:
               context.go('/');
               break;
             case 1:
-              context.go('/medications');
+              context.go('/brief');
               break;
             case 2:
-              context.go('/measurements');
+              context.go('/capture');
               break;
             case 3:
-              context.go('/appointments');
+              context.go('/ask');
               break;
             case 4:
-              context.push(
-                  '/settings'); // Or a 'More' menu page, for now push settings
+              context.push('/settings');
               break;
           }
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.medication), label: 'Meds'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.monitor_weight), label: 'Vitals'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Appts'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'More'),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.today),
+            selectedIcon: Icon(Icons.today, color: Colors.blue),
+            label: 'Ngayon',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.summarize_outlined),
+            selectedIcon: Icon(Icons.summarize, color: Colors.blue),
+            label: 'Ulat',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.mic, size: 28),
+            selectedIcon: Icon(Icons.mic, size: 28, color: Colors.blue),
+            label: 'Capture',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.question_answer_outlined),
+            selectedIcon: Icon(Icons.question_answer, color: Colors.blue),
+            label: 'Tanong',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.more_horiz),
+            selectedIcon: Icon(Icons.more_horiz, color: Colors.blue),
+            label: 'Higit pa',
+          ),
         ],
       ),
     );
@@ -122,10 +147,31 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
+          // Tab 0: Ngayon (Today)
           GoRoute(
             path: '/',
             builder: (context, state) => const HomeScreen(),
           ),
+          // Tab 1: Ulat (Brief/Handover)
+          GoRoute(
+            path: '/brief',
+            builder: (context, state) => const CareBriefScreen(),
+          ),
+          GoRoute(
+            path: '/handover',
+            builder: (context, state) => const HandoverScreen(),
+          ),
+          // Tab 2: Capture
+          GoRoute(
+            path: '/capture',
+            builder: (context, state) => const VoiceCaptureScreen(),
+          ),
+          // Tab 3: Tanong (Ask)
+          GoRoute(
+            path: '/ask',
+            builder: (context, state) => const AskScreen(),
+          ),
+          // Higit pa (More) sub-routes — kept in shell
           GoRoute(
             path: '/medications',
             builder: (context, state) => const MedicationsScreen(),
@@ -138,7 +184,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/appointments',
             builder: (context, state) => const AppointmentsScreen(),
           ),
-          // Additional main screens that fit within the shell
           GoRoute(
             path: '/care-recipient',
             builder: (context, state) => const CareRecipientScreen(),
@@ -146,14 +191,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/care-notes',
             builder: (context, state) => const CareNotesScreen(),
-          ),
-          GoRoute(
-            path: '/care-brief',
-            builder: (context, state) => const CareBriefScreen(),
-          ),
-          GoRoute(
-            path: '/handover',
-            builder: (context, state) => const HandoverScreen(),
           ),
           GoRoute(
             path: '/family-contacts',
@@ -166,6 +203,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/reports',
             builder: (context, state) => const ReportsScreen(),
+          ),
+          GoRoute(
+            path: '/ai-privacy',
+            builder: (context, state) => const AiPrivacyPanel(),
           ),
         ],
       ),

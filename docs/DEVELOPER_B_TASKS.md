@@ -537,7 +537,7 @@ lib/features/care_brief/            # Summary generation
 lib/features/handover/              # Handover generation
 lib/features/reports/               # PDF reports
 lib/features/settings/              # Settings
-lib/services/ai/                    # AI interface
+lib/services/ai/                    # AI interface (Owned by C, B keeps B17 interface)
 lib/services/pdf/                   # PDF generation
 ```
 
