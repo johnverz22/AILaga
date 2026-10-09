@@ -35,15 +35,19 @@ class DeterministicHandoverService implements HandoverService {
     final recipient = await _careRecipientRepo.getById(recipientId);
     final name = recipient?.displayName ?? 'Unknown';
 
-    final occurrences = await _medicationRepo.getOccurrencesForDateRange(recipientId, periodStart, periodEnd);
-    final measurements = await _measurementRepo.getForDateRange(recipientId, periodStart, periodEnd);
-    final appointments = await _appointmentRepo.getForDateRange(recipientId, periodStart, periodEnd);
-    final notes = await _careNoteRepo.getForDateRange(recipientId, periodStart, periodEnd);
-    
+    final occurrences = await _medicationRepo.getOccurrencesForDateRange(
+        recipientId, periodStart, periodEnd);
+    final measurements = await _measurementRepo.getForDateRange(
+        recipientId, periodStart, periodEnd);
+    final appointments = await _appointmentRepo.getForDateRange(
+        recipientId, periodStart, periodEnd);
+    final notes = await _careNoteRepo.getForDateRange(
+        recipientId, periodStart, periodEnd);
+
     // For upcoming appointments, query from periodEnd onwards up to 7 days
     final upcomingAppointmentsData = await _appointmentRepo.getForDateRange(
-      recipientId, 
-      periodEnd, 
+      recipientId,
+      periodEnd,
       periodEnd.add(const Duration(days: 7)),
     );
 
@@ -56,11 +60,16 @@ class DeterministicHandoverService implements HandoverService {
     final now = DateTime.now();
 
     for (final o in occurrences) {
-      final timeStr = DateFormatter.formatTime(o.scheduledTime);
+      final timeStr = DateFormatter.formatTime(
+          o.scheduledAt); // Use scheduledAt instead of scheduledTime
       if (o.status == MedicationStatus.taken) {
-        completedTasks.add('${o.medicationName} taken at $timeStr');
-      } else if (o.status == MedicationStatus.pending && o.scheduledTime.isBefore(now)) {
-        unconfirmedItems.add('${o.medicationName} not confirmed since $timeStr');
+        completedTasks.add(
+            '${o.medicationScheduleId} taken at $timeStr'); // Use medicationScheduleId instead of medicationName
+      } else if (o.status == MedicationStatus.pending &&
+          o.scheduledAt.isBefore(now)) {
+        // Use scheduledAt instead of scheduledTime
+        unconfirmedItems.add(
+            '${o.medicationScheduleId} not confirmed since $timeStr'); // Use medicationScheduleId instead of medicationName
       }
     }
 
@@ -70,29 +79,35 @@ class DeterministicHandoverService implements HandoverService {
 
     for (final n in notes) {
       if (n.reviewStatus == 'pending' || n.reviewStatus == 'unreviewed') {
-        unconfirmedItems.add('Care note from ${DateFormatter.formatTime(n.observedAt)} unreviewed');
+        unconfirmedItems.add(
+            'Care note from ${DateFormatter.formatTime(n.observedAt)} unreviewed');
       }
-      relevantObservations.add('${DateFormatter.formatTime(n.observedAt)}: ${n.originalText}');
+      relevantObservations
+          .add('${DateFormatter.formatTime(n.observedAt)}: ${n.originalText}');
     }
 
     for (final m in measurements) {
-      recentMeasurements.add('${m.type.name}: ${m.value} ${m.unit} (${DateFormatter.formatTime(m.timestamp)})');
+      recentMeasurements.add(
+          '${m.measurementType.name}: ${m.value1} ${m.unit} (${DateFormatter.formatTime(m.measuredAt)})'); // Use measurementType.name, value1, and measuredAt
     }
 
     final dateFormatter = DateFormat('MMM d');
     for (final a in upcomingAppointmentsData) {
-      upcomingAppointments.add('${a.purpose} with ${a.providerName} on ${dateFormatter.format(a.date)}');
+      upcomingAppointments.add(
+          '${a.purpose} with ${a.providerOrFacility ?? 'Unknown Provider'} on ${dateFormatter.format(a.scheduledAt)}'); // Use providerOrFacility and scheduledAt
     }
 
     final buffer = StringBuffer();
     final fullDateFormatter = DateFormat('MMMM d, yyyy');
-    
+
     buffer.writeln('🤝 Caregiver Handover');
-    buffer.writeln('Period: ${fullDateFormatter.format(periodStart)} to ${fullDateFormatter.format(periodEnd)}');
+    buffer.writeln(
+        'Period: ${fullDateFormatter.format(periodStart)} to ${fullDateFormatter.format(periodEnd)}');
     if (caregiverName != null && caregiverName.isNotEmpty) {
       buffer.writeln('Prepared by: $caregiverName');
     }
-    buffer.writeln('Generated: ${DateFormatter.formatDateTime(DateTime.now())}');
+    buffer
+        .writeln('Generated: ${DateFormatter.formatDateTime(DateTime.now())}');
     buffer.writeln();
 
     buffer.writeln('✅ Completed');

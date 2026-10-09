@@ -3,7 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 
-import '../../features/medications/domain/medication_occurrence_entity.dart';
+import '../../features/medications/domain/medication_entity.dart';
 import '../../features/measurements/domain/measurement_entity.dart';
 import '../../features/appointments/domain/appointment_entity.dart';
 import '../../features/care_notes/domain/care_note_entity.dart';
@@ -31,11 +31,16 @@ class PdfGenerator {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('AILaga Care Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.Text('AILaga Care Report',
+                  style: pw.TextStyle(
+                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 8),
-              pw.Text('Care Recipient: $recipientName', style: const pw.TextStyle(fontSize: 16)),
-              pw.Text('Period: ${dateFormatter.format(periodStart)} to ${dateFormatter.format(periodEnd)}'),
-              pw.Text('Generated: ${dateFormatter.format(generatedAt)} ${timeFormatter.format(generatedAt)}'),
+              pw.Text('Care Recipient: $recipientName',
+                  style: const pw.TextStyle(fontSize: 16)),
+              pw.Text(
+                  'Period: ${dateFormatter.format(periodStart)} to ${dateFormatter.format(periodEnd)}'),
+              pw.Text(
+                  'Generated: ${dateFormatter.format(generatedAt)} ${timeFormatter.format(generatedAt)}'),
               pw.Divider(),
               pw.SizedBox(height: 16),
             ],
@@ -59,10 +64,17 @@ class PdfGenerator {
         },
         build: (context) {
           return [
-            if (measurements.isNotEmpty) _buildMeasurementsSection(measurements, dateFormatter, timeFormatter),
-            if (occurrences.isNotEmpty) _buildMedicationsSection(occurrences, dateFormatter, timeFormatter),
-            if (appointments.isNotEmpty) _buildAppointmentsSection(appointments, dateFormatter, timeFormatter),
-            if (notes.isNotEmpty) _buildNotesSection(notes, dateFormatter, timeFormatter),
+            if (measurements.isNotEmpty)
+              _buildMeasurementsSection(
+                  measurements, dateFormatter, timeFormatter),
+            if (occurrences.isNotEmpty)
+              _buildMedicationsSection(
+                  occurrences, dateFormatter, timeFormatter),
+            if (appointments.isNotEmpty)
+              _buildAppointmentsSection(
+                  appointments, dateFormatter, timeFormatter),
+            if (notes.isNotEmpty)
+              _buildNotesSection(notes, dateFormatter, timeFormatter),
           ];
         },
       ),
@@ -76,12 +88,16 @@ class PdfGenerator {
       padding: const pw.EdgeInsets.only(top: 16, bottom: 8),
       child: pw.Text(
         title,
-        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.teal800),
+        style: pw.TextStyle(
+            fontSize: 18,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.teal800),
       ),
     );
   }
 
-  pw.Widget _buildMeasurementsSection(List<MeasurementEntity> items, DateFormat d, DateFormat t) {
+  pw.Widget _buildMeasurementsSection(
+      List<MeasurementEntity> items, DateFormat d, DateFormat t) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -91,19 +107,22 @@ class PdfGenerator {
           headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
           cellAlignment: pw.Alignment.centerLeft,
-          data: items.map((m) => [
-            m.measurementType.name,
-            m.value1.toString(),
-            m.unit,
-            '${d.format(m.measuredAt)} ${t.format(m.measuredAt)}',
-            m.sourceType,
-          ]).toList(),
+          data: items
+              .map((m) => [
+                    m.measurementType.name,
+                    m.value1.toString(),
+                    m.unit,
+                    '${d.format(m.measuredAt)} ${t.format(m.measuredAt)}',
+                    m.sourceType,
+                  ])
+              .toList(),
         ),
       ],
     );
   }
 
-  pw.Widget _buildMedicationsSection(List<MedicationOccurrenceEntity> items, DateFormat d, DateFormat t) {
+  pw.Widget _buildMedicationsSection(
+      List<MedicationOccurrenceEntity> items, DateFormat d, DateFormat t) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -116,10 +135,11 @@ class PdfGenerator {
           data: items.map((m) {
             // Wait, we don't have medication name in Occurrence entity.
             // In a real app we'd join with the schedule, but we'll use scheduleId as a fallback for now.
-            final medName = m.medicationScheduleId; 
-            final scheduled = '${d.format(m.scheduledAt)} ${t.format(m.scheduledAt)}';
-            final statusTime = m.statusUpdatedAt != null 
-                ? '${d.format(m.statusUpdatedAt!)} ${t.format(m.statusUpdatedAt!)}' 
+            final medName = m.medicationScheduleId;
+            final scheduled =
+                '${d.format(m.scheduledAt)} ${t.format(m.scheduledAt)}';
+            final statusTime = m.statusUpdatedAt != null
+                ? '${d.format(m.statusUpdatedAt!)} ${t.format(m.statusUpdatedAt!)}'
                 : '';
             return [
               medName,
@@ -133,7 +153,8 @@ class PdfGenerator {
     );
   }
 
-  pw.Widget _buildAppointmentsSection(List<AppointmentEntity> items, DateFormat d, DateFormat t) {
+  pw.Widget _buildAppointmentsSection(
+      List<AppointmentEntity> items, DateFormat d, DateFormat t) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -143,18 +164,21 @@ class PdfGenerator {
           headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
           cellAlignment: pw.Alignment.centerLeft,
-          data: items.map((a) => [
-            '${d.format(a.scheduledAt)} ${t.format(a.scheduledAt)}',
-            a.providerOrFacility ?? '',
-            a.purpose ?? '',
-            a.status,
-          ]).toList(),
+          data: items
+              .map((a) => [
+                    '${d.format(a.scheduledAt)} ${t.format(a.scheduledAt)}',
+                    a.providerOrFacility ?? '',
+                    a.purpose ?? '',
+                    a.status,
+                  ])
+              .toList(),
         ),
       ],
     );
   }
 
-  pw.Widget _buildNotesSection(List<CareNoteEntity> items, DateFormat d, DateFormat t) {
+  pw.Widget _buildNotesSection(
+      List<CareNoteEntity> items, DateFormat d, DateFormat t) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -165,7 +189,9 @@ class PdfGenerator {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('${d.format(n.observedAt)} ${t.format(n.observedAt)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                pw.Text('${d.format(n.observedAt)} ${t.format(n.observedAt)}',
+                    style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold, fontSize: 10)),
                 pw.Text(n.originalText),
               ],
             ),

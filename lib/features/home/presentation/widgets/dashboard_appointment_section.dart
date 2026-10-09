@@ -7,11 +7,15 @@ import '../../../care_recipient/data/care_recipient_providers.dart';
 import '../../../appointments/data/appointment_providers.dart';
 import '../../../appointments/domain/appointment_entity.dart';
 
-final nextAppointmentProvider = StreamProvider.autoDispose<AppointmentEntity?>((ref) {
+final nextAppointmentProvider =
+    StreamProvider.autoDispose<AppointmentEntity?>((ref) {
   final recipient = ref.watch(primaryCareRecipientProvider).value;
   if (recipient == null) return Stream.value(null);
-  
-  return ref.watch(appointmentRepositoryProvider).watchUpcoming(recipient.id).map((list) {
+
+  return ref
+      .watch(appointmentRepositoryProvider)
+      .watchUpcoming(recipient.id)
+      .map((list) {
     if (list.isEmpty) return null;
     return list.first; // Assuming watchUpcoming returns them sorted by date
   });
@@ -53,12 +57,14 @@ class DashboardAppointmentSection extends ConsumerWidget {
                     ),
                   );
                 }
-                
+
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.event, color: Colors.blue),
-                  title: Text(appointment.providerName),
-                  subtitle: Text('${DateFormatter.formatDate(appointment.date)} at ${DateFormatter.formatTime(appointment.date)}\n${appointment.purpose}'),
+                  title: Text(appointment.providerOrFacility ??
+                      'Unknown Provider'), // Use providerOrFacility instead of providerName
+                  subtitle: Text(
+                      '${DateFormatter.formatDate(appointment.scheduledAt)} at ${DateFormatter.formatTime(appointment.scheduledAt)}\n${appointment.purpose}'), // Use scheduledAt instead of date
                   isThreeLine: true,
                   onTap: () => context.push('/appointments'),
                 );

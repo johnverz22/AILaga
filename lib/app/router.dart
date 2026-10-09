@@ -33,18 +33,20 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get the current location to determine selected tab
     final location = GoRouterState.of(context).uri.path;
-    
+
     int getIndex() {
       if (location.startsWith('/medications')) return 1;
       if (location.startsWith('/measurements')) return 2;
       if (location.startsWith('/appointments')) return 3;
-      if (location.startsWith('/care-notes') || 
+      if (location.startsWith('/care-notes') ||
           location.startsWith('/settings') ||
           location.startsWith('/family-contacts') ||
           location.startsWith('/reports') ||
           location.startsWith('/care-brief') ||
           location.startsWith('/handover') ||
-          location.startsWith('/care-recipient')) return 4;
+          location.startsWith('/care-recipient')) {
+        return 4;
+      }
       return 0; // default to Home
     }
 
@@ -67,15 +69,18 @@ class AppShell extends StatelessWidget {
               context.go('/appointments');
               break;
             case 4:
-              context.push('/settings'); // Or a 'More' menu page, for now push settings
+              context.push(
+                  '/settings'); // Or a 'More' menu page, for now push settings
               break;
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.medication), label: 'Meds'),
-          BottomNavigationBarItem(icon: Icon(Icons.monitor_weight), label: 'Vitals'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Appts'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.monitor_weight), label: 'Vitals'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today), label: 'Appts'),
           BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'More'),
         ],
       ),
@@ -89,20 +94,20 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       // Async wait for the care recipient to resolve if it's loading
       final careRecipientAsync = ref.read(primaryCareRecipientProvider);
-      
+
       // If we don't have a care recipient and are not on onboarding, redirect to onboarding
       final isGoingToOnboarding = state.uri.path == '/onboarding';
-      
+
       // If it's loaded and empty, force onboarding
       if (careRecipientAsync.hasValue && careRecipientAsync.value == null) {
         if (!isGoingToOnboarding) return '/onboarding';
       }
-      
+
       // If it's loaded and present, prevent going to onboarding
       if (careRecipientAsync.hasValue && careRecipientAsync.value != null) {
         if (isGoingToOnboarding) return '/';
       }
-      
+
       return null; // no redirect
     },
     routes: [
