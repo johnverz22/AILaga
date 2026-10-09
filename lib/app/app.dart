@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ai/local/ai_providers.dart';
+import '../services/ai/local/engine_lifecycle.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -19,12 +20,16 @@ class AilagaApp extends ConsumerWidget {
       });
     });
     
-    return MaterialApp.router(
-      title: 'AILaga',
-      theme: appTheme,
-      darkTheme: darkAppTheme,
-      themeMode: ThemeMode.system,
-      routerConfig: router,
+    // EngineLifecycleGuard starts the 60 s idle-unload heartbeat and
+    // force-unloads the model when the app goes to background.
+    return EngineLifecycleGuard(
+      child: MaterialApp.router(
+        title: 'AILaga',
+        theme: appTheme,
+        darkTheme: darkAppTheme,
+        themeMode: ThemeMode.system,
+        routerConfig: router,
+      ),
     );
   }
 }
