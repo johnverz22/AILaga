@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "884019261468",
+    "project_id": "ailaga-d77b8",
+    "storage_bucket": "ailaga-d77b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:884019261468:android:f5383acd6195c559fe6fd9",
+        "android_client_info": {
+          "package_name": "com.ailaga.ailaga"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "884019261468-djo0avq5cpufn1dfsmrg456tuk65m2ni.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_L04YYEJGXk-6mYgWYeR2JcJPhw7J870"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "884019261468-djo0avq5cpufn1dfsmrg456tuk65m2ni.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

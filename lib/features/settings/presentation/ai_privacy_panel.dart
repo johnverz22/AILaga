@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/ai/local/ai_providers.dart';
-import '../../../services/ai/local/local_ai_engine.dart';
 
 /// AI Privacy / Proof Panel — shows model info, runtime, tier.
 /// Displays "0 bytes sent" proof when in airplane mode.

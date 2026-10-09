@@ -299,6 +299,5 @@ class _ChatMessage {
   const _ChatMessage({
     required this.text,
     required this.isUser,
-    this.sources,
   });
 }

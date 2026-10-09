@@ -6,7 +6,8 @@ class AppException implements Exception {
   const AppException(this.message, {this.cause});
 
   @override
-  String toString() => 'AppException: $message${cause != null ? ' (caused by: $cause)' : ''}';
+  String toString() =>
+      'AppException: $message${cause != null ? ' (caused by: $cause)' : ''}';
 }
 
 /// Thrown when a database operation fails.
@@ -38,4 +39,27 @@ class NotFoundException extends AppException {
 
   @override
   String toString() => 'NotFoundException: $message';
+}
+
+/// Thrown when Firebase authentication fails.
+///
+/// The [message] is always a user-friendly string suitable for display.
+/// The [code] mirrors the FirebaseAuthException.code for programmatic handling.
+class AuthException extends AppException {
+  /// The raw FirebaseAuthException code (e.g. 'wrong-password').
+  final String? code;
+
+  const AuthException(super.message, {this.code, super.cause});
+
+  @override
+  String toString() =>
+      'AuthException${code != null ? '[$code]' : ''}: $message';
+}
+
+/// Thrown when a network operation fails (no connectivity, timeout).
+class NetworkException extends AppException {
+  const NetworkException(super.message, {super.cause});
+
+  @override
+  String toString() => 'NetworkException: $message';
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AILaga</string>
+    <!--
+        Google Sign-In OAuth 2.0 Android client ID.
+        Source: google-services.json → oauth_client[type=1].client_id
+        This value is the Android OAuth client, not a secret —
+        Firebase security is enforced via SHA-1/SHA-256 certificate fingerprints
+        registered in the Firebase console, not key secrecy.
+    -->
+    <string name="default_web_client_id">884019261468-djo0avq5cpufn1dfsmrg456tuk65m2ni.apps.googleusercontent.com</string>
+</resources>

@@ -25,8 +25,9 @@ import '../features/reports/presentation/reports_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/capture/presentation/voice_capture_screen.dart';
 import '../features/ask/presentation/ask_screen.dart';
-import '../features/capture/presentation/widgets/on_device_badge.dart';
 import '../features/care_recipient/data/care_recipient_providers.dart';
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/register_screen.dart';
 
 // Shell Navigation Widget — redesigned per AILaga v2 spec §4.2
 // Tabs: Ngayon · Ulat · 🎙 Capture (center FAB) · Tanong · Higit pa
@@ -41,7 +42,8 @@ class AppShell extends StatelessWidget {
     final theme = Theme.of(context);
 
     int getIndex() {
-      if (location.startsWith('/brief') || location.startsWith('/handover')) return 1;
+      if (location.startsWith('/brief') || location.startsWith('/handover'))
+        return 1;
       if (location.startsWith('/capture')) return 2;
       if (location.startsWith('/ask')) return 3;
       if (location.startsWith('/medications') ||
@@ -143,6 +145,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/emergency',
         builder: (context, state) => const EmergencyScreen(),
+      ),
+      // ---------------------------------------------------------------------------
+      // Auth routes — outside the shell (no bottom nav).
+      // Auth is NEVER a hard gate; home is always reachable via "Continue without
+      // account" on the login screen.
+      // ---------------------------------------------------------------------------
+      GoRoute(
+        path: '/auth/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/auth/register',
+        builder: (context, state) => const RegisterScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
