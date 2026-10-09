@@ -12,6 +12,7 @@ import 'package:ailaga/features/medications/domain/medication_status.dart';
 import 'package:ailaga/features/measurements/data/measurement_repository_impl.dart';
 import 'package:ailaga/services/ai/local/proposals/proposal_models.dart';
 import 'package:ailaga/services/ai/local/proposals/proposal_repository.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Full-flow widget test (C14): review tray → confirm → records persisted
 /// in the real repositories, backed by an in-memory Drift database.
@@ -108,10 +109,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Review tray shows heard text + both proposals.
-    expect(find.textContaining('Narinig'), findsWidgets);
-    expect(find.textContaining('Kumpirmahin lahat'), findsOneWidget);
+    expect(find.textContaining('Heard'), findsWidgets);
+    expect(find.textContaining('Confirm all'), findsOneWidget);
 
-    await tester.tap(find.textContaining('Kumpirmahin lahat'));
+    await tester.tap(find.textContaining('Confirm all'));
     await tester.pumpAndSettle();
 
     // Occurrence flipped to taken; measurement row persisted.
@@ -150,12 +151,12 @@ void main() {
 
     await tester.tap(find.descendant(
       of: find.byType(ProposalCard),
-      matching: find.byIcon(Icons.close),
+      matching: find.byIcon(Symbols.close_rounded),
     ));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Walang narinig'), findsOneWidget);
-    expect(find.textContaining('Kumpirmahin lahat'), findsNothing);
+    expect(find.textContaining('Nothing was heard'), findsOneWidget);
+    expect(find.textContaining('Confirm all'), findsNothing);
 
     // The staged row is marked discarded — not merely hidden locally.
     final all = await captureRepo.getAllProposalsForCapture(captureId);
@@ -188,11 +189,11 @@ void main() {
     expect(cards, findsNWidgets(2));
     await tester.tap(find.descendant(
       of: cards.at(1),
-      matching: find.byIcon(Icons.close),
+      matching: find.byIcon(Symbols.close_rounded),
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.textContaining('Kumpirmahin lahat'));
+    await tester.tap(find.textContaining('Confirm all'));
     await tester.pumpAndSettle();
 
     // Med occurrence written; discarded measurement never persisted.

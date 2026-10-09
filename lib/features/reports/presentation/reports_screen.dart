@@ -8,6 +8,7 @@ import 'package:pdf/pdf.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import '../data/report_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 final reportDateRangeProvider = StateProvider<DateTimeRange>((ref) {
   final now = DateTime.now();
@@ -67,7 +68,7 @@ class ReportsScreen extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Error: $err')),
+              error: (err, stack) => Center(child: Text('Something went wrong.')),
             ),
           ),
         ],
@@ -112,7 +113,7 @@ class _DateRangeSelector extends ConsumerWidget {
             child: const Text('Custom Range'),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.calendar_today),
+            icon: const Icon(Symbols.calendar_today_rounded),
             onSelected: (value) {
               final now = DateTime.now();
               DateTime start = now;

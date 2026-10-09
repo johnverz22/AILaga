@@ -6,6 +6,8 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../care_recipient/data/care_recipient_providers.dart';
 import '../../../appointments/data/appointment_providers.dart';
 import '../../../appointments/domain/appointment_entity.dart';
+import 'dashboard_section.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 final nextAppointmentProvider =
     StreamProvider.autoDispose<AppointmentEntity?>((ref) {
@@ -27,54 +29,48 @@ class DashboardAppointmentSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nextAppointmentAsync = ref.watch(nextAppointmentProvider);
-    final theme = Theme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Next Appointment', style: theme.textTheme.titleMedium),
-                TextButton(
-                  onPressed: () => context.push('/appointments'),
-                  child: const Text('All'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            nextAppointmentAsync.when(
-              data: (appointment) {
-                if (appointment == null) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No upcoming appointments'),
-                    ),
-                  );
-                }
-
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event, color: Colors.blue),
-                  title: Text(appointment.providerOrFacility ??
-                      'Unknown Provider'), // Use providerOrFacility instead of providerName
-                  subtitle: Text(
-                      '${DateFormatter.formatDate(appointment.scheduledAt)} at ${DateFormatter.formatTime(appointment.scheduledAt)}\n${appointment.purpose}'), // Use scheduledAt instead of date
-                  isThreeLine: true,
-                  onTap: () => context.push('/appointments'),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Error: $err')),
-            ),
-          ],
-        ),
+    return DashboardSection(
+      icon: Symbols.event_rounded,
+      iconColor: const Color(0xFF2F4B8A),
+      title: 'Next Appointment',
+      action: TextButton(
+        onPressed: () => context.push('/appointments'),
+        child: const Text('All'),
       ),
+      children: [
+        nextAppointmentAsync.when(
+          data: (appointment) {
+            if (appointment == null) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('No upcoming appointments'),
+              );
+            }
+
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              minVerticalPadding: 12,
+              leading: const Icon(Symbols.event_rounded,
+                  color: Color(0xFF2F4B8A), size: 28),
+              title: Text(
+                appointment.providerOrFacility ?? 'Unknown Provider',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                  '${DateFormatter.formatDate(appointment.scheduledAt)} at ${DateFormatter.formatTime(appointment.scheduledAt)}\n${appointment.purpose}'),
+              isThreeLine: true,
+              trailing: const Icon(Symbols.chevron_right_rounded, color: Colors.grey),
+              onTap: () => context.push('/appointments'),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (err, stack) => Center(child: Text('Something went wrong.')),
+        ),
+      ],
     );
   }
 }

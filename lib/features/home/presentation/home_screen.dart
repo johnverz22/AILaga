@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../app/app_bar_actions.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
+import '../../capture/presentation/widgets/on_device_badge.dart';
 import 'widgets/dashboard_tasks_section.dart';
 import 'widgets/dashboard_medication_section.dart';
 import 'widgets/dashboard_appointment_section.dart';
@@ -17,32 +19,30 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: recipientAsync.when(
-          data: (recipient) => Text('Hello, ${recipient?.displayName ?? 'Caregiver'}'),
-          loading: () => const Text('AILaga'),
-          error: (_, __) => const Text('AILaga'),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                foregroundColor: Theme.of(context).colorScheme.onError,
-              ),
-              onPressed: () => context.push('/emergency'),
-              icon: const Icon(Icons.sos),
-              label: const Text('SOS'),
+        leading: const OnDeviceBadge(),
+        leadingWidth: 160,
+        title: Column(
+          children: [
+            recipientAsync.when(
+              data: (recipient) =>
+                  Text('Hello, ${recipient?.displayName ?? 'Caregiver'}'),
+              loading: () => const Text('AILaga'),
+              error: (_, __) => const Text('AILaga'),
             ),
-          ),
-        ],
+            Text(
+              DateFormatter.formatDate(DateTime.now()),
+              style: const TextStyle(fontSize: 15, color: Color(0xFF5E5748)),
+            ),
+          ],
+        ),
+        actions: const [SosAppBarButton()],
       ),
       body: recipientAsync.when(
         data: (recipient) {
           if (recipient == null) {
             return const Center(child: Text('No care recipient found.'));
           }
-          
+
           return RefreshIndicator(
             onRefresh: () async {
               // Refresh logic if any
@@ -59,7 +59,8 @@ class HomeScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (err, stack) =>
+            const Center(child: Text('Something went wrong.')),
       ),
     );
   }

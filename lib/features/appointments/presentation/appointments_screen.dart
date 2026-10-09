@@ -5,6 +5,7 @@ import '../data/appointment_providers.dart';
 import '../domain/appointment_entity.dart';
 import 'widgets/appointment_card.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Appointments screen with two tabs: Upcoming and Past.
 class AppointmentsScreen extends ConsumerWidget {
@@ -29,7 +30,7 @@ class AppointmentsScreen extends ConsumerWidget {
         ),
         body: recipientAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
+          error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
           data: (recipient) {
             if (recipient == null) {
               return Center(
@@ -38,7 +39,7 @@ class AppointmentsScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.calendar_month_outlined,
+                      Icon(Symbols.calendar_month_rounded,
                           size: 64,
                           color: theme.colorScheme.primary
                               .withValues(alpha: 0.4)),
@@ -64,7 +65,7 @@ class AppointmentsScreen extends ConsumerWidget {
               ? FloatingActionButton.extended(
                   onPressed: () =>
                       context.push('/appointments/add', extra: r.id),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Symbols.add_rounded),
                   label: const Text('Add Appointment'),
                 )
               : null,
@@ -120,7 +121,7 @@ class _AppointmentList extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.event_available_outlined,
+                  Icon(Symbols.event_available_rounded,
                       size: 64,
                       color: theme.colorScheme.primary
                           .withValues(alpha: 0.4)),

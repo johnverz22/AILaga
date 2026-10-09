@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../data/care_recipient_providers.dart';
 import 'widgets/care_recipient_card.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Shows the primary care recipient profile. If none exists, prompts to create.
 class CareRecipientScreen extends ConsumerWidget {
@@ -19,9 +20,9 @@ class CareRecipientScreen extends ConsumerWidget {
         actions: [
           recipientAsync.whenOrNull(
                 data: (r) => r != null
-                    ? IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        tooltip: 'Edit',
+                    ? TextButton.icon(
+                        icon: const Icon(Symbols.edit_rounded, size: 20),
+                        label: const Text('Edit'),
                         onPressed: () => context.push('/care-recipient/edit'),
                       )
                     : null,
@@ -37,12 +38,12 @@ class CareRecipientScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline,
+                Icon(Symbols.error_rounded,
                     size: 48, color: theme.colorScheme.error),
                 const SizedBox(height: 16),
                 Text('Something went wrong', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Text(err.toString(),
+                Text('Please close and reopen the app.',
                     style: theme.textTheme.bodySmall,
                     textAlign: TextAlign.center),
               ],
@@ -58,7 +59,7 @@ class CareRecipientScreen extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.person_add_alt_1_outlined,
+                      Symbols.person_add_rounded,
                       size: 72,
                       color: theme.colorScheme.primary.withValues(alpha: 0.5),
                     ),
@@ -76,7 +77,7 @@ class CareRecipientScreen extends ConsumerWidget {
                     const SizedBox(height: 32),
                     ElevatedButton.icon(
                       onPressed: () => context.push('/care-recipient/edit'),
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(Symbols.add_rounded),
                       label: const Text('Add Care Recipient'),
                     ),
                   ],
@@ -98,7 +99,7 @@ class CareRecipientScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: OutlinedButton.icon(
                   onPressed: () => context.push('/family-contacts'),
-                  icon: const Icon(Icons.people_outline),
+                  icon: const Icon(Symbols.people_rounded),
                   label: const Text('Manage Family Contacts'),
                 ),
               ),
@@ -108,7 +109,7 @@ class CareRecipientScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextButton.icon(
                   onPressed: () => _confirmDelete(context, ref, recipient.id),
-                  icon: Icon(Icons.delete_outline,
+                  icon: Icon(Symbols.delete_rounded,
                       color: theme.colorScheme.error),
                   label: Text(
                     'Delete Profile',

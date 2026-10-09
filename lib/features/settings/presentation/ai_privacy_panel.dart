@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/app_bar_actions.dart';
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/proof/traffic_proof_channel.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Real per-app traffic counters from Android TrafficStats (spike S5).
 /// Null → channel unavailable on this platform.
@@ -15,10 +17,14 @@ final _trafficCountersProvider =
   return TrafficSnapshot(rxBytes: rx, txBytes: tx);
 });
 
-/// AI Privacy / Proof Panel — shows model info, runtime, tier.
-/// Displays "0 bytes sent" proof when in airplane mode.
+/// "On my phone" — privacy proof panel (UI spec H13).
+/// States only what is true right now: local storage, real byte
+/// counters from the OS, helper status.
 class AiPrivacyPanel extends ConsumerWidget {
   const AiPrivacyPanel({super.key});
+
+  static const _sure = Color(0xFF1B7F3B);
+  static const _muted = Color(0xFF5E5748);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,23 +35,26 @@ class AiPrivacyPanel extends ConsumerWidget {
     final helperOn = engine.engineId != 'null_engine';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('On my phone')),
+      appBar: AppBar(
+        title: const Text('On my phone'),
+        actions: const [SosAppBarButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Hero section — states only what is true right now.
           Card(
-            color: Colors.green.shade50,
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  const Icon(Icons.shield, size: 48, color: Colors.green),
+                  const Icon(Symbols.shield_rounded,
+                      size: 56, color: _sure),
                   const SizedBox(height: 12),
                   Text(
-                    'Nananatili sa teleponong ito',
+                    'Stays on this phone',
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.green.shade800,
+                      color: _sure,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -64,7 +73,7 @@ class AiPrivacyPanel extends ConsumerWidget {
           // Helper status — plain words, true facts only.
           _infoTile(
             theme,
-            icon: Icons.memory,
+            icon: Symbols.memory_rounded,
             label: 'Phone helper',
             value: helperOn
                 ? 'On — works without internet'
@@ -74,7 +83,7 @@ class AiPrivacyPanel extends ConsumerWidget {
             data: (tier) => helperOn
                 ? _infoTile(
                     theme,
-                    icon: Icons.speed,
+                    icon: Symbols.speed_rounded,
                     label: 'Helper speed on this phone',
                     value: switch (tier) {
                       AiTier.full => 'Normal',
@@ -91,7 +100,7 @@ class AiPrivacyPanel extends ConsumerWidget {
               children: [
                 _infoTile(
                   theme,
-                  icon: Icons.airplanemode_active,
+                  icon: Symbols.upload_rounded,
                   label: 'Network data sent by this app',
                   value: snap == null
                       ? 'Not measurable on this device'
@@ -100,7 +109,7 @@ class AiPrivacyPanel extends ConsumerWidget {
                 if (snap != null)
                   _infoTile(
                     theme,
-                    icon: Icons.download_done,
+                    icon: Symbols.download_done_rounded,
                     label: 'Network data received by this app',
                     value: _bytesLabel(snap.rxBytes),
                   ),
@@ -109,20 +118,20 @@ class AiPrivacyPanel extends ConsumerWidget {
             loading: () => const SizedBox.shrink(),
             error: (_, __) => _infoTile(
               theme,
-              icon: Icons.airplanemode_active,
+              icon: Symbols.upload_rounded,
               label: 'Network data sent by this app',
               value: 'Not measurable on this device',
             ),
           ),
           _infoTile(
             theme,
-            icon: Icons.lock,
+            icon: Symbols.lock_rounded,
             label: 'Where records live',
             value: 'Only on this phone — no account, no cloud',
           ),
           _infoTile(
             theme,
-            icon: Icons.verified_user,
+            icon: Symbols.verified_user_rounded,
             label: 'Who decides',
             value: 'The phone suggests. You always confirm before saving.',
           ),
@@ -131,17 +140,17 @@ class AiPrivacyPanel extends ConsumerWidget {
           // Explanation
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('How it works', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  _stepRow('1', 'You speak or type a care update'),
-                  _stepRow('2', 'The phone turns it into cards'),
-                  _stepRow('3', 'Every number is checked'),
-                  _stepRow('4', 'You review and confirm'),
-                  _stepRow('5', 'It is saved on this phone'),
+                  _stepRow(theme, '1', 'You speak or type a care update'),
+                  _stepRow(theme, '2', 'The phone turns it into cards'),
+                  _stepRow(theme, '3', 'Every number is checked'),
+                  _stepRow(theme, '4', 'You review and confirm'),
+                  _stepRow(theme, '5', 'It is saved on this phone'),
                 ],
               ),
             ),
@@ -154,9 +163,12 @@ class AiPrivacyPanel extends ConsumerWidget {
   Widget _infoTile(ThemeData theme,
       {required IconData icon, required String label, required String value}) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      subtitle: Text(value),
+      leading: Icon(icon, size: 28),
+      title: Text(label,
+          style: theme.textTheme.bodyLarge
+              ?.copyWith(fontWeight: FontWeight.w600)),
+      subtitle: Text(value,
+          style: theme.textTheme.bodyMedium?.copyWith(color: _muted)),
     );
   }
 
@@ -168,15 +180,25 @@ class AiPrivacyPanel extends ConsumerWidget {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  Widget _stepRow(String number, String text) {
+  Widget _stepRow(ThemeData theme, String number, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 12, child: Text(number, style: const TextStyle(fontSize: 12))),
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: const Color(0xFF0B6B6B),
+            child: Text(number,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Text(text)),
+          Expanded(
+              child:
+                  Text(text, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );

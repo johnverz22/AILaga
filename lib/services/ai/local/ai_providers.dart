@@ -33,9 +33,12 @@ final resolvedEngineProvider = FutureProvider<LocalAiEngine>((ref) async {
     }
 
     final manager = ref.watch(modelManagerProvider);
-    // Re-run on every install-status change (download done, deleted, …).
-    final status = await ref.watch(modelStatusProvider.future);
-    if (status.state == ModelInstallState.installed ||
+    // Re-run only when the install STATE changes — watching the raw status
+    // stream would re-resolve the engine on every progress tick during a
+    // download and churn every screen that touches the AI providers.
+    final installState = await ref.watch(
+        modelStatusProvider.selectAsync((s) => s.state));
+    if (installState == ModelInstallState.installed ||
         await manager.isInstalled) {
       final tier = await ref.watch(deviceTierProvider.future);
       if (tier != AiTier.basic) {

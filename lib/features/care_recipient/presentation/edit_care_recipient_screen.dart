@@ -5,6 +5,7 @@ import '../data/care_recipient_providers.dart';
 import '../domain/care_recipient_entity.dart';
 import '../../../../core/utilities/validators.dart';
 import '../../../../core/utilities/uuid_generator.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Create or edit a care recipient profile.
 ///
@@ -163,7 +164,7 @@ class _EditCareRecipientScreenState
               decoration: const InputDecoration(
                 labelText: 'Full Name *',
                 hintText: 'e.g. Maria Santos',
-                prefixIcon: Icon(Icons.person_outline),
+                prefixIcon: Icon(Symbols.person_rounded),
               ),
               validator: (v) =>
                   Validators.required(v, fieldName: 'Full name'),
@@ -174,7 +175,7 @@ class _EditCareRecipientScreenState
             // Date of birth
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.cake_outlined),
+              leading: const Icon(Symbols.cake_rounded),
               title: Text(
                 _dateOfBirth != null
                     ? 'Born: ${_formatDate(_dateOfBirth!)}'
@@ -189,11 +190,11 @@ class _EditCareRecipientScreenState
                 children: [
                   if (_dateOfBirth != null)
                     IconButton(
-                      icon: const Icon(Icons.clear),
+                      icon: const Icon(Symbols.clear_rounded),
                       tooltip: 'Clear',
                       onPressed: () => setState(() => _dateOfBirth = null),
                     ),
-                  const Icon(Icons.chevron_right),
+                  const Icon(Symbols.chevron_right_rounded),
                 ],
               ),
               onTap: _pickDateOfBirth,
@@ -209,7 +210,7 @@ class _EditCareRecipientScreenState
               decoration: const InputDecoration(
                 labelText: 'Allergies',
                 hintText: 'e.g. Penicillin, Shellfish',
-                prefixIcon: Icon(Icons.warning_amber_outlined),
+                prefixIcon: Icon(Symbols.warning_amber_rounded),
                 alignLabelWithHint: true,
               ),
               textInputAction: TextInputAction.next,
@@ -224,7 +225,7 @@ class _EditCareRecipientScreenState
               decoration: const InputDecoration(
                 labelText: 'Important Notes',
                 hintText: 'Medical history, preferences, mobility notes…',
-                prefixIcon: Icon(Icons.notes_outlined),
+                prefixIcon: Icon(Symbols.notes_rounded),
                 alignLabelWithHint: true,
               ),
               textInputAction: TextInputAction.next,
@@ -239,7 +240,7 @@ class _EditCareRecipientScreenState
               decoration: const InputDecoration(
                 labelText: 'Emergency Information',
                 hintText: 'Primary physician, insurance, blood type…',
-                prefixIcon: Icon(Icons.local_hospital_outlined),
+                prefixIcon: Icon(Symbols.local_hospital_rounded),
                 alignLabelWithHint: true,
               ),
             ),

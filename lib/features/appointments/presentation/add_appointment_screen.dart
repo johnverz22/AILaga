@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../data/appointment_providers.dart';
 import '../domain/appointment_entity.dart';
 import '../../../core/utilities/uuid_generator.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Add or edit an appointment.
 ///
@@ -162,10 +163,10 @@ class _AddAppointmentScreenState
             Card(
               margin: EdgeInsets.zero,
               child: ListTile(
-                leading: const Icon(Icons.calendar_month_outlined),
+                leading: const Icon(Symbols.calendar_month_rounded),
                 title: Text(_formatDateTime(_scheduledAt)),
                 subtitle: const Text('Tap to change date and time'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(Symbols.chevron_right_rounded),
                 onTap: _pickDateTime,
               ),
             ),
@@ -178,7 +179,7 @@ class _AddAppointmentScreenState
               decoration: const InputDecoration(
                 labelText: 'Purpose / Reason',
                 hintText: 'e.g. Annual check-up, Cardiology follow-up',
-                prefixIcon: Icon(Icons.assignment_outlined),
+                prefixIcon: Icon(Symbols.assignment_rounded),
               ),
               textInputAction: TextInputAction.next,
             ),
@@ -191,7 +192,7 @@ class _AddAppointmentScreenState
               decoration: const InputDecoration(
                 labelText: 'Provider / Facility',
                 hintText: 'e.g. Dr. Santos, St. Luke\'s Medical Center',
-                prefixIcon: Icon(Icons.local_hospital_outlined),
+                prefixIcon: Icon(Symbols.local_hospital_rounded),
               ),
               textInputAction: TextInputAction.next,
             ),
@@ -205,7 +206,7 @@ class _AddAppointmentScreenState
               decoration: const InputDecoration(
                 labelText: 'Notes (optional)',
                 hintText: 'Preparation instructions, what to bring…',
-                prefixIcon: Icon(Icons.notes_outlined),
+                prefixIcon: Icon(Symbols.notes_rounded),
                 alignLabelWithHint: true,
               ),
             ),

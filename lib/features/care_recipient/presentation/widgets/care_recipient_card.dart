@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/care_recipient_entity.dart';
 import '../../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Displays a care recipient summary in a themed card.
 class CareRecipientCard extends StatelessWidget {
@@ -61,10 +62,10 @@ class CareRecipientCard extends StatelessWidget {
                   ),
                 ),
                 if (onEdit != null)
-                  IconButton(
+                  TextButton.icon(
                     onPressed: onEdit,
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit profile',
+                    icon: const Icon(Symbols.edit_rounded, size: 20),
+                    label: const Text('Edit'),
                   ),
               ],
             ),
@@ -73,7 +74,7 @@ class CareRecipientCard extends StatelessWidget {
               if (recipient.allergies?.isNotEmpty == true) ...[
                 _detailRow(
                   context,
-                  icon: Icons.warning_amber_rounded,
+                  icon: Symbols.warning_amber_rounded,
                   iconColor: const Color(0xFFD97706),
                   label: 'Allergies',
                   value: recipient.allergies!,
@@ -83,7 +84,7 @@ class CareRecipientCard extends StatelessWidget {
               if (recipient.importantNotes?.isNotEmpty == true) ...[
                 _detailRow(
                   context,
-                  icon: Icons.notes_rounded,
+                  icon: Symbols.notes_rounded,
                   iconColor: colorScheme.primary,
                   label: 'Important Notes',
                   value: recipient.importantNotes!,
@@ -93,7 +94,7 @@ class CareRecipientCard extends StatelessWidget {
               if (recipient.emergencyInfo?.isNotEmpty == true)
                 _detailRow(
                   context,
-                  icon: Icons.local_hospital_outlined,
+                  icon: Symbols.local_hospital_rounded,
                   iconColor: colorScheme.error,
                   label: 'Emergency Info',
                   value: recipient.emergencyInfo!,

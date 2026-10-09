@@ -5,6 +5,7 @@ import '../../../services/ai/local/proposals/proposal_models.dart';
 import '../../../services/ai/local/proposals/proposal_repository.dart';
 import '../data/capture_providers.dart';
 import 'widgets/proposal_card.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Review Tray screen: shows all AI-proposed records for a capture.
 /// Caregiver can confirm all, edit individual, or discard.
@@ -42,9 +43,9 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Suriin ang Narinig'),
+        title: const Text('Check what was heard'),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Symbols.close_rounded),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: 'Close',
         ),
@@ -61,7 +62,7 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Narinig:',
+                    'Heard:',
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -81,10 +82,10 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle_outline,
+                        Icon(Symbols.check_circle_rounded,
                             size: 64, color: theme.colorScheme.primary),
                         const SizedBox(height: 16),
-                        Text('Walang narinig na tala.',
+                        Text('Nothing was heard.',
                             style: theme.textTheme.bodyLarge),
                       ],
                     ),
@@ -121,10 +122,10 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.check),
+                        : const Icon(Symbols.check_rounded),
                     label: Text(_confirming
-                        ? 'Kinukumpirma...'
-                        : 'Kumpirmahin lahat (${_proposals.length})'),
+                        ? 'Confirming…'
+                        : 'Confirm all (${_proposals.length})'),
                   ),
                 ),
               ),
@@ -144,7 +145,7 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hindi na-discard: $e')),
+          SnackBar(content: Text('Could not discard: $e')),
         );
       }
       return;
@@ -187,7 +188,7 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Something went wrong. Try again.'), backgroundColor: Colors.red),
         );
       }
     } finally {

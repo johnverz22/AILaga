@@ -5,6 +5,7 @@ import '../data/care_note_providers.dart';
 import '../domain/care_note_entity.dart';
 import '../../../core/utilities/validators.dart';
 import '../../../core/utilities/uuid_generator.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class AddCareNoteScreen extends ConsumerStatefulWidget {
   final String recipientId;
@@ -98,10 +99,10 @@ class _AddCareNoteScreenState extends ConsumerState<AddCareNoteScreen> {
             Card(
               margin: EdgeInsets.zero,
               child: ListTile(
-                leading: const Icon(Icons.access_time_outlined),
+                leading: const Icon(Symbols.access_time_rounded),
                 title: Text(_formatDateTime(_observedAt)),
                 subtitle: const Text('Tap to change observation time'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(Symbols.chevron_right_rounded),
                 onTap: _pickDateTime,
               ),
             ),

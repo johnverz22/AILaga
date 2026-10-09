@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/care_note_entity.dart';
 import '../../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class CareNoteCard extends StatelessWidget {
   final CareNoteEntity note;
@@ -28,7 +29,7 @@ class CareNoteCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.access_time_outlined, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
+                Icon(Symbols.access_time_rounded, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
                 const SizedBox(width: 8),
                 Text(
                   AppDateUtils.formatDateTime(note.observedAt),
@@ -60,7 +61,7 @@ class CareNoteCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 14, color: cs.secondary),
+                        Icon(Symbols.auto_awesome_rounded, size: 14, color: cs.secondary),
                         const SizedBox(width: 6),
                         Text(
                           'Phone summary',
@@ -83,7 +84,7 @@ class CareNoteCard extends StatelessWidget {
                   TextButton.icon(
                     onPressed: onToggleReview,
                     icon: Icon(
-                      isConfirmed ? Icons.check_box : Icons.check_box_outline_blank,
+                      isConfirmed ? Symbols.check_box_rounded : Symbols.check_box_outline_blank_rounded,
                       color: isConfirmed ? const Color(0xFF16A34A) : cs.onSurface.withValues(alpha: 0.5),
                       size: 18,
                     ),
@@ -95,8 +96,11 @@ class CareNoteCard extends StatelessWidget {
                     ),
                   ),
                 if (onDelete != null)
-                  IconButton(
-                    icon: Icon(Icons.delete_outline, size: 20, color: cs.error.withValues(alpha: 0.6)),
+                  TextButton.icon(
+                    icon: Icon(Symbols.delete_rounded, size: 20, color: cs.error.withValues(alpha: 0.7)),
+                    label: Text('Delete',
+                        style:
+                            TextStyle(color: cs.error.withValues(alpha: 0.8))),
                     onPressed: onDelete,
                   ),
               ],
@@ -129,7 +133,7 @@ class _SourceBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isAi) ...[
-            Icon(Icons.mic_none, size: 10, color: cs.secondary),
+            Icon(Symbols.mic_none_rounded, size: 10, color: cs.secondary),
             const SizedBox(width: 4),
           ],
           Text(

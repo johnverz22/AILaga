@@ -5,6 +5,7 @@ import '../data/family_contact_providers.dart';
 import '../domain/family_contact_entity.dart';
 import 'widgets/family_contact_card.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Lists all family contacts for the primary care recipient.
 /// Supports reordering and shows emergency contacts at the top.
@@ -22,7 +23,7 @@ class FamilyContactsScreen extends ConsumerWidget {
       ),
       body: recipientAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
         data: (recipient) {
           if (recipient == null) {
             return Center(
@@ -32,7 +33,7 @@ class FamilyContactsScreen extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.person_search_outlined,
+                      Symbols.person_search_rounded,
                       size: 64,
                       color: theme.colorScheme.primary.withValues(alpha: 0.4),
                     ),
@@ -62,7 +63,7 @@ class FamilyContactsScreen extends ConsumerWidget {
 
           return contactsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
             data: (contacts) => _buildList(context, ref, recipient.id, contacts),
           );
         },
@@ -74,7 +75,7 @@ class FamilyContactsScreen extends ConsumerWidget {
                   '/family-contacts/add',
                   extra: r.id,
                 ),
-                icon: const Icon(Icons.person_add_outlined),
+                icon: const Icon(Symbols.person_add_rounded),
                 label: const Text('Add Contact'),
               )
             : null,
@@ -98,7 +99,7 @@ class FamilyContactsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.people_outline,
+                Symbols.people_rounded,
                 size: 64,
                 color: theme.colorScheme.primary.withValues(alpha: 0.4),
               ),

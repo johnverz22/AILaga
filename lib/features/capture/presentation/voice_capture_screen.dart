@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_bar_actions.dart';
 import '../../../services/ai/local/capture/voice_capture_service.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/ai_providers.dart';
@@ -15,7 +16,9 @@ import '../../../services/ai/local/proposals/basic_text_extractor.dart';
 import '../../../features/medications/data/medication_providers.dart';
 import '../../../features/care_recipient/data/care_recipient_providers.dart';
 import '../data/capture_providers.dart';
+import 'widgets/on_device_badge.dart';
 import 'review_tray_screen.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Voice Capture screen: hold-to-talk with 30s limit.
 /// Falls back to typed text if mic denied or no model.
@@ -52,22 +55,10 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Magtala'),
-        actions: [
-          // SOS button in every app bar per spec
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.error,
-                foregroundColor: theme.colorScheme.onError,
-              ),
-              onPressed: () => context.push('/emergency'),
-              icon: const Icon(Icons.sos, size: 18),
-              label: const Text('SOS'),
-            ),
-          ),
-        ],
+        leading: const OnDeviceBadge(),
+        leadingWidth: 160,
+        title: const Text('Record'),
+        actions: const [SosAppBarButton()],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -88,12 +79,13 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                        Icon(Symbols.info_rounded,
+                            color: Color(0xFF9A5B00), size: 24),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'I-type muna ang tala sa baba. I-on ang Phone helper sa Settings para makapagsalita.',
-                            style: TextStyle(fontSize: 13),
+                            'Type your note below. Turn on Phone helper in Settings to use voice.',
+                            style: TextStyle(fontSize: 17),
                           ),
                         ),
                       ],
@@ -106,13 +98,14 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
               error: (_, __) => const SizedBox.shrink(),
             ),
 
-            // Transcript / recording area
+            // Transcript / recording area. Scrollable so an open keyboard
+            // (or a small screen) shrinks it instead of overflowing.
             Expanded(
               child: _isProcessing
-                  ? _buildProcessingState(theme)
+                  ? _scrollableCenter(_buildProcessingState(theme))
                   : _proposals.isNotEmpty
                       ? _buildResultsPreview(theme)
-                      : _buildCaptureInput(theme),
+                      : _scrollableCenter(_buildCaptureInput(theme)),
             ),
 
             const SizedBox(height: 16),
@@ -125,10 +118,23 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
             if (!_isProcessing && _proposals.isEmpty)
               TextButton.icon(
                 onPressed: () => context.push('/capture/snap'),
-                icon: const Icon(Icons.photo_camera),
-                label: const Text('Kunan ng litrato (reseta, label, monitor)'),
+                icon: const Icon(Symbols.photo_camera_rounded),
+                label: const Text('Take a photo (prescription, label, monitor)'),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Centers [child] when it fits; scrolls instead of overflowing when the
+  /// keyboard or a short screen squeezes the available height.
+  Widget _scrollableCenter(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(child: child),
         ),
       ),
     );
@@ -139,13 +145,13 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          _isRecording ? Icons.mic : Icons.mic_none,
+          _isRecording ? Symbols.mic_rounded : Symbols.mic_none_rounded,
           size: 80,
           color: _isRecording ? theme.colorScheme.error : theme.colorScheme.primary,
         ),
         const SizedBox(height: 24),
         Text(
-          _isRecording ? 'Nakikinig...' : 'Mag-record o mag-type',
+          _isRecording ? 'Listening…' : 'Record or type',
           style: theme.textTheme.headlineSmall,
         ),
         const SizedBox(height: 32),
@@ -154,7 +160,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
           controller: _textController,
           maxLines: 4,
           decoration: InputDecoration(
-            hintText: 'Halimbawa: "Uminom si Lola ng Metformin, BP 130/80"',
+            hintText: 'Example: "Lola took Metformin, BP 130/80"',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -177,7 +183,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Pinoproseso...',
+            'Processing…',
             style: theme.textTheme.titleMedium,
           ),
           if (_transcript != null) ...[
@@ -200,7 +206,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${_proposals.length} tala ang narinig',
+          '${_proposals.length} ${_proposals.length == 1 ? 'record' : 'records'} heard',
           style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
@@ -211,7 +217,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
               final p = _proposals[index];
               return ListTile(
                 leading: Icon(
-                  p.flag == ProposalFlag.sure ? Icons.check_circle : Icons.warning,
+                  p.flag == ProposalFlag.sure ? Symbols.check_circle_rounded : Symbols.warning_rounded,
                   color: p.flag == ProposalFlag.sure ? Colors.green : Colors.orange,
                 ),
                 title: Text(_describeProposal(p)),
@@ -233,8 +239,8 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
             height: 56,
             child: OutlinedButton.icon(
               onPressed: _isBasicTier ? null : _toggleRecording,
-              icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-              label: Text(_isRecording ? 'Itigil' : 'I-record'),
+              icon: Icon(_isRecording ? Symbols.stop_rounded : Symbols.mic_rounded),
+              label: Text(_isRecording ? 'Stop' : 'Record'),
             ),
           ),
         ),
@@ -247,8 +253,8 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
               onPressed: _textController.text.trim().isEmpty && !_isRecording
                   ? null
                   : _processInput,
-              icon: const Icon(Icons.send),
-              label: const Text('Iproseso'),
+              icon: const Icon(Symbols.send_rounded),
+              label: const Text('Process'),
             ),
           ),
         ),
@@ -266,7 +272,8 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hindi magamit ang mic: $e')),
+            const SnackBar(
+                content: Text('Microphone not available. Try typing instead.')),
           );
         }
         return;
@@ -338,7 +345,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
       final transcript = transcriptBuf.toString().trim();
       if (transcript.isEmpty && proposals.isEmpty) {
-        throw StateError(failure ?? 'Walang narinig — subukan ulit o mag-type.');
+        throw StateError(failure ?? 'Could not hear anything. Try again or type.');
       }
 
       await _finishExtraction(
@@ -351,7 +358,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Something went wrong. Try again.')),
         );
         setState(() => _isProcessing = false);
       }
@@ -419,7 +426,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Something went wrong. Try again.')),
         );
       }
     } finally {
@@ -500,12 +507,12 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
   }
 
   String _describeProposal(ProposedRecord p) {
-    if (p is ProposedMedicationTaken) return 'Ininom: ${p.medicationName}';
-    if (p is ProposedMedicationSkipped) return 'Na-skip: ${p.medicationName}';
+    if (p is ProposedMedicationTaken) return 'Took: ${p.medicationName}';
+    if (p is ProposedMedicationSkipped) return 'Skipped: ${p.medicationName}';
     if (p is ProposedMeasurement) return '${p.type}: ${p.value1}${p.value2 != null ? "/${p.value2}" : ""} ${p.unit}';
-    if (p is ProposedCareNote) return 'Tala: ${p.text}';
+    if (p is ProposedCareNote) return 'Note: ${p.text}';
     if (p is ProposedAppointment) return 'Appointment: ${p.datetimePhrase}';
-    if (p is ProposedMedicationSchedule) return 'Gamot: ${p.name}';
+    if (p is ProposedMedicationSchedule) return 'Medicine: ${p.name}';
     return 'Record';
   }
 }

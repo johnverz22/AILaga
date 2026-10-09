@@ -14,6 +14,7 @@ import '../../care_recipient/data/care_recipient_providers.dart';
 import '../../medications/data/medication_providers.dart';
 import '../data/capture_providers.dart';
 import 'review_tray_screen.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Snap capture (C11): photo → Reseta / Label / Monitor proposals → review.
 /// Photo stays on the phone; discarded after use unless attached.
@@ -32,9 +33,9 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
   bool _attachPhoto = false;
 
   static const _intents = [
-    (ImageIntent.monitor, Icons.monitor_heart, 'Monitor'),
-    (ImageIntent.reseta, Icons.receipt_long, 'Reseta'),
-    (ImageIntent.label, Icons.medication, 'Label'),
+    (ImageIntent.monitor, Symbols.monitor_heart_rounded, 'Monitor'),
+    (ImageIntent.reseta, Symbols.receipt_long_rounded, 'Prescription'),
+    (ImageIntent.label, Symbols.medication_rounded, 'Label'),
   ];
 
   @override
@@ -45,7 +46,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kunan ng litrato'),
+        title: const Text('Take a photo'),
         actions: [
           // SOS stays in the app bar on every screen (spec §4.2).
           Padding(
@@ -56,7 +57,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                 foregroundColor: theme.colorScheme.onError,
               ),
               onPressed: () => context.push('/emergency'),
-              icon: const Icon(Icons.sos, size: 18),
+              icon: const Icon(Symbols.sos_rounded, size: 18),
               label: const Text('SOS'),
             ),
           ),
@@ -80,7 +81,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
               ),
             ),
 
-          Text('Ano ang litrato?', style: theme.textTheme.titleMedium),
+          Text('What is the photo?', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Row(
             children: _intents.map((entry) {
@@ -149,7 +150,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                     onPressed: isBasic || _processing
                         ? null
                         : () => _pick(camera: true),
-                    icon: const Icon(Icons.photo_camera),
+                    icon: const Icon(Symbols.photo_camera_rounded),
                     label: const Text('Camera'),
                   ),
                 ),
@@ -162,7 +163,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                     onPressed: isBasic || _processing
                         ? null
                         : () => _pick(camera: false),
-                    icon: const Icon(Icons.photo_library),
+                    icon: const Icon(Symbols.photo_library_rounded),
                     label: const Text('Gallery'),
                   ),
                 ),
@@ -182,8 +183,8 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.check),
-                label: Text(_processing ? 'Binabasa...' : 'Gamitin ang litrato'),
+                    : const Icon(Symbols.check_rounded),
+                label: Text(_processing ? 'Reading…' : 'Use this photo'),
               ),
             ),
           ],
@@ -223,7 +224,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
       final transcriptBuf = StringBuffer();
       final proposals = <ProposedRecord>[];
       final sw = Stopwatch()..start();
-      // Hard ceiling so "Binabasa..." can never spin forever on a stall.
+      // Hard ceiling so "Reading…" can never spin forever on a stall.
       await for (final event in engine
           .extractFromImage(photo, _intent, ctx)
           .timeout(const Duration(seconds: 60))) {
@@ -252,7 +253,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
           .toList();
 
       if (validated.isEmpty && transcript.isEmpty) {
-        throw StateError('Hindi mabasa ang litrato — subukan ulit.');
+        throw StateError('Could not read the photo — try again.');
       }
 
       final captureRepo = ref.read(aiCaptureRepositoryProvider);
@@ -293,7 +294,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Something went wrong. Try again.'), backgroundColor: Colors.red),
         );
         setState(() => _processing = false);
       }

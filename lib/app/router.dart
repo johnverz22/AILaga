@@ -10,6 +10,7 @@ import '../features/medications/presentation/add_medication_screen.dart';
 import '../features/medications/presentation/medication_detail_screen.dart';
 import '../features/measurements/presentation/measurements_screen.dart';
 import '../features/measurements/presentation/add_measurement_screen.dart';
+import '../features/measurements/presentation/camera_pulse_screen.dart';
 import '../features/appointments/presentation/appointments_screen.dart';
 import '../features/appointments/presentation/add_appointment_screen.dart';
 import '../features/care_notes/presentation/care_notes_screen.dart';
@@ -21,6 +22,8 @@ import '../features/family_contacts/presentation/family_contacts_screen.dart';
 import '../features/family_contacts/presentation/add_family_contact_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/settings/presentation/ai_privacy_panel.dart';
+import '../features/settings/presentation/health_connect_screen.dart';
+import 'sos_sensor_guard.dart';
 import '../features/ai_setup/presentation/ai_setup_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
@@ -28,6 +31,7 @@ import '../features/capture/presentation/voice_capture_screen.dart';
 import '../features/capture/presentation/snap_capture_screen.dart';
 import '../features/ask/presentation/ask_screen.dart';
 import '../features/care_recipient/data/care_recipient_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 // Shell Navigation Widget — redesigned per AILaga v2 spec §4.2
 // Tabs: Ngayon · Ulat · 🎙 Capture (center FAB) · Tanong · Higit pa
@@ -58,56 +62,125 @@ class AppShell extends StatelessWidget {
       return 0; // default to Ngayon (Home)
     }
 
+    void go(int index) {
+      switch (index) {
+        case 0:
+          context.go('/');
+        case 1:
+          context.go('/brief');
+        case 2:
+          context.go('/capture');
+        case 3:
+          context.go('/ask');
+        case 4:
+          context.push('/settings');
+      }
+    }
+
     return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
+      body: SosSensorGuard(child: child),
+      bottomNavigationBar: _ModernNavBar(
         selectedIndex: getIndex(),
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.go('/');
-              break;
-            case 1:
-              context.go('/brief');
-              break;
-            case 2:
-              context.go('/capture');
-              break;
-            case 3:
-              context.go('/ask');
-              break;
-            case 4:
-              context.push('/settings');
-              break;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.today),
-            selectedIcon: Icon(Icons.today, color: Colors.blue),
-            label: 'Ngayon',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.summarize_outlined),
-            selectedIcon: Icon(Icons.summarize, color: Colors.blue),
-            label: 'Ulat',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.mic, size: 28),
-            selectedIcon: Icon(Icons.mic, size: 28, color: Colors.blue),
-            label: 'Capture',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.question_answer_outlined),
-            selectedIcon: Icon(Icons.question_answer, color: Colors.blue),
-            label: 'Tanong',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.more_horiz),
-            selectedIcon: Icon(Icons.more_horiz, color: Colors.blue),
-            label: 'Higit pa',
-          ),
-        ],
+        onSelect: go,
+      ),
+    );
+  }
+}
+
+/// Elder-friendly floating nav: tall pill bar, large icons with words,
+/// raised teal mic button in the middle (the app's primary action).
+/// Border only — no soft shadows (UI spec). All targets ≥ 48dp.
+class _ModernNavBar extends StatelessWidget {
+  static const _teal = Color(0xFF0B6B6B);
+  static const _inactive = Color(0xFF5E5748); // darker gray — readable
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  const _ModernNavBar({required this.selectedIndex, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.viewPaddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, 0, 12, 10 + bottomPad),
+      child: SizedBox(
+        height: 104,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Pill bar — the center slot is empty space for the mic button.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 78,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0xFFD9D2C3), width: 2),
+                ),
+                child: Row(
+                  children: [
+                    _item(0, Symbols.today_rounded, Symbols.today_rounded, 'Today'),
+                    _item(1, Symbols.summarize_rounded, Symbols.summarize_rounded,
+                        'Reports'),
+                    const Expanded(child: SizedBox()),
+                    _item(3, Symbols.chat_bubble_rounded, Symbols.chat_bubble_rounded,
+                        'Ask'),
+                    _item(4, Symbols.settings_rounded, Symbols.settings_rounded, 'Settings'),
+                  ],
+                ),
+              ),
+            ),
+            // Raised center Speak button — biggest target on the bar.
+            Positioned(
+              bottom: 32,
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: Material(
+                  shape: const CircleBorder(
+                      side: BorderSide(color: Colors.white, width: 4)),
+                  color: _teal,
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => onSelect(2),
+                    child: const Icon(Symbols.mic_rounded,
+                        color: Colors.white, size: 36),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _item(
+      int index, IconData icon, IconData selectedIcon, String label) {
+    final selected = selectedIndex == index;
+    final color = selected ? _teal : _inactive;
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: () => onSelect(index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(selected ? selectedIcon : icon, color: color, size: 32),
+            const SizedBox(height: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight:
+                        selected ? FontWeight.bold : FontWeight.w600,
+                    color: color)),
+          ],
+        ),
       ),
     );
   }
@@ -216,6 +289,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/ai-setup',
             builder: (context, state) => const AiSetupScreen(),
           ),
+          GoRoute(
+            path: '/health-connect',
+            builder: (context, state) => const HealthConnectScreen(),
+          ),
         ],
       ),
       // Screens without bottom navigation (full screen forms)
@@ -255,6 +332,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           final recipientId =
               state.extra is String ? state.extra as String : '';
           return AddMeasurementScreen(recipientId: recipientId);
+        },
+      ),
+      GoRoute(
+        path: '/measurements/pulse-cam',
+        builder: (context, state) {
+          final recipientId =
+              state.extra is String ? state.extra as String : '';
+          return CameraPulseScreen(recipientId: recipientId);
         },
       ),
       GoRoute(

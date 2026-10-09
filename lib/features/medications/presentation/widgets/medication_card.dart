@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/medication_entity.dart';
 import '../../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Card showing a medication schedule summary: name, times, start/end, active state.
 class MedicationCard extends StatelessWidget {
@@ -43,7 +44,7 @@ class MedicationCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      Icons.medication_outlined,
+                      Symbols.medication_rounded,
                       color: schedule.isActive
                           ? cs.primary
                           : cs.onSurface.withValues(alpha: 0.4),
@@ -101,7 +102,7 @@ class MedicationCard extends StatelessWidget {
               // Date range row
               Row(
                 children: [
-                  Icon(Icons.date_range_outlined,
+                  Icon(Symbols.date_range_rounded,
                       size: 14, color: cs.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 4),
                   Text(

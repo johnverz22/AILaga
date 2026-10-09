@@ -5,6 +5,7 @@ import '../data/family_contact_providers.dart';
 import '../domain/family_contact_entity.dart';
 import '../../../../core/utilities/validators.dart';
 import '../../../../core/utilities/uuid_generator.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Add or edit a family contact.
 ///
@@ -154,7 +155,7 @@ class _AddFamilyContactScreenState
               decoration: const InputDecoration(
                 labelText: 'Full Name *',
                 hintText: 'e.g. Juan Santos',
-                prefixIcon: Icon(Icons.person_outline),
+                prefixIcon: Icon(Symbols.person_rounded),
               ),
               validator: (v) => Validators.required(v, fieldName: 'Name'),
               textInputAction: TextInputAction.next,
@@ -168,7 +169,7 @@ class _AddFamilyContactScreenState
               decoration: const InputDecoration(
                 labelText: 'Relationship (optional)',
                 hintText: 'e.g. Son, Daughter, Spouse',
-                prefixIcon: Icon(Icons.favorite_border_outlined),
+                prefixIcon: Icon(Symbols.favorite_border_rounded),
               ),
               textInputAction: TextInputAction.next,
             ),
@@ -181,7 +182,7 @@ class _AddFamilyContactScreenState
               decoration: const InputDecoration(
                 labelText: 'Phone Number *',
                 hintText: 'e.g. +63 917 123 4567',
-                prefixIcon: Icon(Icons.phone_outlined),
+                prefixIcon: Icon(Symbols.phone_rounded),
               ),
               validator: (v) =>
                   Validators.requiredPhoneNumber(v, fieldName: 'Phone number'),
@@ -200,7 +201,7 @@ class _AddFamilyContactScreenState
                 subtitle: const Text(
                     'Shown at top of the emergency contacts list'),
                 secondary: Icon(
-                  Icons.local_hospital_outlined,
+                  Symbols.local_hospital_rounded,
                   color: _isEmergencyContact
                       ? Theme.of(context).colorScheme.error
                       : null,

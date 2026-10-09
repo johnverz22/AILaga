@@ -7,6 +7,7 @@ import '../../../core/utils/date_formatter.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import '../data/handover_providers.dart';
 import '../domain/handover_entity.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 final handoverDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -76,14 +77,14 @@ class _HandoverScreenState extends ConsumerState<HandoverScreen> {
       appBar: AppBar(
         title: const Text('Caregiver Handover'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.copy),
-            tooltip: 'Copy to Clipboard',
+          TextButton.icon(
+            icon: const Icon(Symbols.content_copy_rounded, size: 20),
+            label: const Text('Copy'),
             onPressed: _copyToClipboard,
           ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share',
+          TextButton.icon(
+            icon: const Icon(Symbols.share_rounded, size: 20),
+            label: const Text('Share'),
             onPressed: _shareHandover,
           ),
         ],
@@ -134,7 +135,7 @@ class _HandoverScreenState extends ConsumerState<HandoverScreen> {
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: _copyToClipboard,
-                              icon: const Icon(Icons.copy),
+                              icon: const Icon(Symbols.content_copy_rounded),
                               label: const Text('Copy'),
                             ),
                           ),
@@ -142,7 +143,7 @@ class _HandoverScreenState extends ConsumerState<HandoverScreen> {
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: _shareHandover,
-                              icon: const Icon(Icons.share),
+                              icon: const Icon(Symbols.share_rounded),
                               label: const Text('Share'),
                             ),
                           ),
@@ -153,7 +154,7 @@ class _HandoverScreenState extends ConsumerState<HandoverScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Error: $err')),
+              error: (err, stack) => Center(child: Text('Something went wrong.')),
             ),
           ),
         ],
@@ -176,7 +177,8 @@ class _DateSelectorRow extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Symbols.chevron_left_rounded),
+            tooltip: 'Previous day',
             onPressed: () {
               ref.read(handoverDateProvider.notifier).state = date.subtract(const Duration(days: 1));
             },
@@ -186,7 +188,8 @@ class _DateSelectorRow extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Symbols.chevron_right_rounded),
+            tooltip: 'Next day',
             onPressed: () {
               ref.read(handoverDateProvider.notifier).state = date.add(const Duration(days: 1));
             },

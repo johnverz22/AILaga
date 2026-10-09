@@ -14,9 +14,13 @@ class AilagaApp extends ConsumerWidget {
 
     // Swap in the real engine once startup resolution finishes
     // (installed model + capable device → Gemma; otherwise stays Basic).
+    // Dedupe by engineId: a same-kind re-resolution (e.g. install state
+    // flipping during download) must not churn every AI-watching screen.
     ref.listen(resolvedEngineProvider, (_, next) {
       next.whenData((engine) {
-        ref.read(localAiEngineProvider.notifier).state = engine;
+        if (ref.read(localAiEngineProvider).engineId != engine.engineId) {
+          ref.read(localAiEngineProvider.notifier).state = engine;
+        }
       });
     });
     
@@ -25,6 +29,7 @@ class AilagaApp extends ConsumerWidget {
     return EngineLifecycleGuard(
       child: MaterialApp.router(
         title: 'AILaga',
+        debugShowCheckedModeBanner: false,
         theme: appTheme,
         darkTheme: darkAppTheme,
         themeMode: ThemeMode.system,

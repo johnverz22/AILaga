@@ -11,6 +11,7 @@ import '../../family_contacts/data/family_contact_providers.dart';
 import '../../family_contacts/domain/family_contact_entity.dart';
 import '../../medications/data/medication_providers.dart';
 import '../../medications/domain/medication_entity.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -95,7 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Something went wrong. Try again.')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -135,7 +136,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Something went wrong. Try again.')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -172,7 +173,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Something went wrong. Try again.')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -228,20 +229,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.health_and_safety, size: 80, color: Colors.teal),
+          const Icon(Symbols.health_and_safety_rounded, size: 80, color: Colors.teal),
           const SizedBox(height: 24),
           Text('Welcome to AILaga', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
           const Text('Your personal caregiving assistant', textAlign: TextAlign.center),
           const SizedBox(height: 48),
           _buildInfoBox(
-            icon: Icons.privacy_tip,
+            icon: Symbols.privacy_tip_rounded,
             title: 'Privacy First',
             description: 'Your data stays on this device. No account needed. No internet required.',
           ),
           const SizedBox(height: 16),
           _buildInfoBox(
-            icon: Icons.warning,
+            icon: Symbols.warning_rounded,
             title: 'Safety Notice',
             description: 'AILaga is not a medical device or diagnostic tool.',
           ),
@@ -381,7 +382,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.notifications_active, size: 80, color: Colors.teal),
+          const Icon(Symbols.notifications_active_rounded, size: 80, color: Colors.teal),
           const SizedBox(height: 24),
           Text('Stay on Track', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
@@ -419,7 +420,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle, size: 80, color: Colors.green),
+          const Icon(Symbols.check_circle_rounded, size: 80, color: Colors.green),
           const SizedBox(height: 24),
           Text('You\'re All Set!', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 16),

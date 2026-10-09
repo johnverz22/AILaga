@@ -5,18 +5,33 @@ import '../../../services/ai/local/model/model_manager.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/platform/apple_channels.dart';
 
-/// The model this build downloads. URL is a placeholder until the team picks
-/// a host; sha256 comes from the release process (S6 spike notes).
-const kAiModel = ModelDescriptor(
+/// The model this build downloads. Default: litert-community's public
+/// Gemma 4 E2B `.litertlm` — no HuggingFace auth required (the google/
+/// repos are gated). Per-device variants (gpu, Tensor G5/G6, Qualcomm)
+/// live in the same repo; override the URL with --dart-define to ship one:
+///   --dart-define=AI_MODEL_URL=... --dart-define=AI_MODEL_SHA256=...
+/// Size is always read from the server/file, never hardcoded in the UI.
+final kAiModel = ModelDescriptor(
   id: 'gemma4-e2b-litertlm',
-  // TODO: replace with the real model URL before shipping; size is always
-  // read from the server/file, never hardcoded in the UI.
-  url: _placeholderModelUrl,
+  url: _modelUrlOverride.isEmpty ? _defaultModelUrl : _modelUrlOverride,
+  // The default checksum only applies to the default file; an overridden
+  // URL needs its own AI_MODEL_SHA256, else the check is skipped.
+  sha256: _modelSha256Override.isNotEmpty
+      ? _modelSha256Override
+      : (_modelUrlOverride.isEmpty ? _defaultModelSha256 : null),
   displayName: 'Phone helper',
 );
 
-const _placeholderModelUrl =
-    String.fromEnvironment('AI_MODEL_URL', defaultValue: '');
+const _defaultModelUrl =
+    'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm'
+    '/resolve/main/gemma-4-E2B-it.litertlm';
+
+/// SHA-256 of gemma-4-E2B-it.litertlm at litert-community/main.
+const _defaultModelSha256 =
+    '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c';
+
+const _modelUrlOverride = String.fromEnvironment('AI_MODEL_URL');
+const _modelSha256Override = String.fromEnvironment('AI_MODEL_SHA256');
 
 /// Raw device capabilities from the Kotlin device channel.
 final deviceCapabilitiesProvider = FutureProvider<DeviceCapabilities>(

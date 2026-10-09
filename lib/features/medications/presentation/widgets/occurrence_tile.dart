@@ -4,6 +4,7 @@ import '../../domain/medication_entity.dart';
 import '../../domain/medication_status.dart';
 import '../../data/medication_providers.dart';
 import '../../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// A single row showing one medication occurrence with its status and action buttons.
 ///
@@ -102,21 +103,21 @@ class OccurrenceTile extends ConsumerWidget {
     switch (occurrence.status) {
       case MedicationStatus.taken:
         return (
-          Icons.check_circle_outline,
+          Symbols.check_circle_rounded,
           const Color(0xFF16A34A), // green
           const Color(0xFFDCFCE7),
           'Taken',
         );
       case MedicationStatus.skipped:
         return (
-          Icons.remove_circle_outline,
+          Symbols.remove_circle_rounded,
           const Color(0xFFD97706), // amber
           const Color(0xFFFEF3C7),
           'Skipped',
         );
       case MedicationStatus.notConfirmed:
         return (
-          Icons.help_outline,
+          Symbols.help_rounded,
           const Color(0xFFB45309), // amber-dark
           const Color(0xFFFDE68A),
           'Not Confirmed',
@@ -124,14 +125,14 @@ class OccurrenceTile extends ConsumerWidget {
       case MedicationStatus.pending:
         if (isOverdue) {
           return (
-            Icons.access_time,
+            Symbols.access_time_rounded,
             cs.error,
             cs.error.withValues(alpha: 0.08),
             'Overdue',
           );
         }
         return (
-          Icons.access_time,
+          Symbols.access_time_rounded,
           cs.onSurface.withValues(alpha: 0.4),
           cs.onSurface.withValues(alpha: 0.06),
           'Pending',
@@ -171,7 +172,7 @@ class _ActionMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<MedicationStatus>(
-      icon: const Icon(Icons.more_vert),
+      icon: const Icon(Symbols.more_vert_rounded),
       tooltip: 'Update status',
       onSelected: (status) =>
           _updateStatus(context, ref, status),
@@ -179,7 +180,7 @@ class _ActionMenu extends ConsumerWidget {
         const PopupMenuItem(
           value: MedicationStatus.taken,
           child: Row(children: [
-            Icon(Icons.check_circle_outline,
+            Icon(Symbols.check_circle_rounded,
                 color: Color(0xFF16A34A), size: 18),
             SizedBox(width: 10),
             Text('Mark Taken'),
@@ -188,7 +189,7 @@ class _ActionMenu extends ConsumerWidget {
         const PopupMenuItem(
           value: MedicationStatus.skipped,
           child: Row(children: [
-            Icon(Icons.remove_circle_outline,
+            Icon(Symbols.remove_circle_rounded,
                 color: Color(0xFFD97706), size: 18),
             SizedBox(width: 10),
             Text('Mark Skipped'),
@@ -197,7 +198,7 @@ class _ActionMenu extends ConsumerWidget {
         const PopupMenuItem(
           value: MedicationStatus.notConfirmed,
           child: Row(children: [
-            Icon(Icons.help_outline,
+            Icon(Symbols.help_rounded,
                 color: Color(0xFFB45309), size: 18),
             SizedBox(width: 10),
             Text('Mark Not Confirmed'),

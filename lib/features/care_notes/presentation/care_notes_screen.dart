@@ -5,6 +5,7 @@ import '../data/care_note_providers.dart';
 import '../domain/care_note_entity.dart';
 import 'widgets/care_note_card.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class CareNotesScreen extends ConsumerWidget {
   const CareNotesScreen({super.key});
@@ -18,7 +19,7 @@ class CareNotesScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Care Notes')),
       body: recipientAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
         data: (recipient) {
           if (recipient == null) {
             return Center(
@@ -27,7 +28,7 @@ class CareNotesScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.note_alt_outlined,
+                    Icon(Symbols.note_alt_rounded,
                         size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                     const SizedBox(height: 20),
                     Text('No care recipient found', style: theme.textTheme.titleMedium),
@@ -45,7 +46,7 @@ class CareNotesScreen extends ConsumerWidget {
           final notesAsync = ref.watch(recentCareNotesProvider(recipient.id));
           return notesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
             data: (notes) {
               if (notes.isEmpty) {
                 return Center(
@@ -54,7 +55,7 @@ class CareNotesScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.notes_outlined,
+                        Icon(Symbols.notes_rounded,
                             size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                         const SizedBox(height: 20),
                         Text('No care notes yet', style: theme.textTheme.titleMedium),
@@ -89,7 +90,7 @@ class CareNotesScreen extends ConsumerWidget {
         data: (r) => r != null
             ? FloatingActionButton.extended(
                 onPressed: () => context.push('/care-notes/add', extra: r.id),
-                icon: const Icon(Icons.add),
+                icon: const Icon(Symbols.add_rounded),
                 label: const Text('Add Note'),
               )
             : null,

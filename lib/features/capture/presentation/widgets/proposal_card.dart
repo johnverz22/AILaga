@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../services/ai/local/proposals/proposal_models.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// A card that shows one AI-proposed record for review.
 class ProposalCard extends StatelessWidget {
@@ -25,12 +26,12 @@ class ProposalCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         side: BorderSide(
           color: isSure
-              ? theme.colorScheme.primary.withValues(alpha: 0.3)
-              : theme.colorScheme.error.withValues(alpha: 0.5),
-          width: 1.5,
+              ? theme.colorScheme.primary.withValues(alpha: 0.4)
+              : theme.colorScheme.error.withValues(alpha: 0.6),
+          width: 2,
         ),
       ),
       child: Padding(
@@ -62,7 +63,7 @@ class ProposalCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isSure ? Icons.check_circle : Icons.warning_amber,
+                        isSure ? Symbols.check_circle_rounded : Symbols.warning_amber_rounded,
                         size: 12,
                         color: isSure
                             ? Colors.green.shade700
@@ -104,27 +105,27 @@ class ProposalCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            // Action buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            // Action buttons — icon + word, never icon alone.
+            // Wrap keeps them usable when large text overflows one line.
+            Wrap(
+              alignment: WrapAlignment.end,
               children: [
                 if (onDiscard != null)
-                  IconButton(
+                  TextButton.icon(
                     onPressed: onDiscard,
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Discard',
-                    iconSize: 20,
-                    style: IconButton.styleFrom(
+                    icon: const Icon(Symbols.close_rounded, size: 22),
+                    label: const Text('Discard'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
                       minimumSize: const Size(48, 48),
                     ),
                   ),
                 if (onEdit != null)
-                  IconButton(
+                  TextButton.icon(
                     onPressed: onEdit,
-                    icon: const Icon(Icons.edit),
-                    tooltip: 'Edit',
-                    iconSize: 20,
-                    style: IconButton.styleFrom(
+                    icon: const Icon(Symbols.edit_rounded, size: 22),
+                    label: const Text('Edit'),
+                    style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
                     ),
                   ),
@@ -137,22 +138,22 @@ class ProposalCard extends StatelessWidget {
   }
 
   IconData _iconForRecord(ProposedRecord record) {
-    if (record is ProposedMedicationTaken) return Icons.medication;
-    if (record is ProposedMedicationSkipped) return Icons.medication_outlined;
-    if (record is ProposedMeasurement) return Icons.monitor_heart;
-    if (record is ProposedCareNote) return Icons.note_alt;
-    if (record is ProposedAppointment) return Icons.calendar_today;
-    if (record is ProposedMedicationSchedule) return Icons.schedule;
-    return Icons.description;
+    if (record is ProposedMedicationTaken) return Symbols.medication_rounded;
+    if (record is ProposedMedicationSkipped) return Symbols.medication_rounded;
+    if (record is ProposedMeasurement) return Symbols.monitor_heart_rounded;
+    if (record is ProposedCareNote) return Symbols.note_alt_rounded;
+    if (record is ProposedAppointment) return Symbols.calendar_today_rounded;
+    if (record is ProposedMedicationSchedule) return Symbols.schedule_rounded;
+    return Symbols.description_rounded;
   }
 
   String _titleForRecord(ProposedRecord record) {
-    if (record is ProposedMedicationTaken) return 'Ininom: ${record.medicationName}';
-    if (record is ProposedMedicationSkipped) return 'Na-skip: ${record.medicationName}';
+    if (record is ProposedMedicationTaken) return 'Took: ${record.medicationName}';
+    if (record is ProposedMedicationSkipped) return 'Skipped: ${record.medicationName}';
     if (record is ProposedMeasurement) return _measurementTitle(record);
-    if (record is ProposedCareNote) return 'Tala';
+    if (record is ProposedCareNote) return 'Note';
     if (record is ProposedAppointment) return 'Appointment';
-    if (record is ProposedMedicationSchedule) return 'Bagong Gamot: ${record.name}';
+    if (record is ProposedMedicationSchedule) return 'New medicine: ${record.name}';
     return 'Record';
   }
 

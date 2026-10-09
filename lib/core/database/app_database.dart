@@ -216,6 +216,17 @@ class AppDatabase extends _$AppDatabase {
   /// For testing — accepts a custom executor
   AppDatabase.forTesting(super.executor);
 
+  /// Deletes every row in every table (Settings → "Delete all data").
+  /// Tables are wiped in reverse declaration order so child rows go
+  /// before the parents they reference — keeps FK checks happy.
+  Future<void> deleteAllData() {
+    return transaction(() async {
+      for (final table in allTables.toList().reversed) {
+        await delete(table).go();
+      }
+    });
+  }
+
   @override
   int get schemaVersion => 2;
 

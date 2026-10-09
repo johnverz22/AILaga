@@ -6,6 +6,7 @@ import '../domain/measurement_entity.dart';
 import '../domain/measurement_type.dart';
 import 'widgets/measurement_card.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Measurement history screen showing all readings, grouped by type or
 /// chronologically. A filter chip row lets the user switch views.
@@ -29,7 +30,7 @@ class _MeasurementsScreenState extends ConsumerState<MeasurementsScreen> {
       appBar: AppBar(title: const Text('Measurements')),
       body: recipientAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
         data: (recipient) {
           if (recipient == null) {
             return Center(
@@ -38,7 +39,7 @@ class _MeasurementsScreenState extends ConsumerState<MeasurementsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.monitor_heart_outlined,
+                    Icon(Symbols.monitor_heart_rounded,
                         size: 64, color: cs.primary.withValues(alpha: 0.4)),
                     const SizedBox(height: 20),
                     Text('No care recipient found',
@@ -69,7 +70,7 @@ class _MeasurementsScreenState extends ConsumerState<MeasurementsScreen> {
                 child: measurementsAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e')),
+                  error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
                   data: (all) {
                     final filtered = _filterType == null
                         ? all
@@ -87,11 +88,27 @@ class _MeasurementsScreenState extends ConsumerState<MeasurementsScreen> {
       ),
       floatingActionButton: recipientAsync.whenOrNull(
         data: (r) => r != null
-            ? FloatingActionButton.extended(
-                onPressed: () =>
-                    context.push('/measurements/add', extra: r.id),
-                icon: const Icon(Icons.add),
-                label: const Text('Record'),
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'pulse-cam',
+                    tooltip: 'Measure pulse with camera',
+                    backgroundColor: const Color(0xFF2F4B8A),
+                    foregroundColor: Colors.white,
+                    onPressed: () => context
+                        .push('/measurements/pulse-cam', extra: r.id),
+                    child: const Icon(Symbols.monitor_heart_rounded),
+                  ),
+                  const SizedBox(height: 10),
+                  FloatingActionButton.extended(
+                    heroTag: 'record',
+                    onPressed: () =>
+                        context.push('/measurements/add', extra: r.id),
+                    icon: const Icon(Symbols.add_rounded),
+                    label: const Text('Record'),
+                  ),
+                ],
               )
             : null,
       ),
@@ -112,7 +129,7 @@ class _MeasurementsScreenState extends ConsumerState<MeasurementsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.monitor_heart_outlined,
+              Icon(Symbols.monitor_heart_rounded,
                   size: 64,
                   color: theme.colorScheme.primary.withValues(alpha: 0.4)),
               const SizedBox(height: 20),

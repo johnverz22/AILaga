@@ -6,6 +6,7 @@ import '../data/medication_providers.dart';
 import '../domain/medication_entity.dart';
 import '../../../core/utilities/validators.dart';
 import '../../../core/utilities/uuid_generator.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Add or edit a medication schedule.
 ///
@@ -218,7 +219,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
               decoration: const InputDecoration(
                 labelText: 'Medication Name *',
                 hintText: 'e.g. Metformin 500mg',
-                prefixIcon: Icon(Icons.medication_outlined),
+                prefixIcon: Icon(Symbols.medication_rounded),
               ),
               validator: (v) =>
                   Validators.required(v, fieldName: 'Medication name'),
@@ -234,7 +235,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
               decoration: const InputDecoration(
                 labelText: 'Prescribed Instructions',
                 hintText: 'e.g. Take with food, twice daily',
-                prefixIcon: Icon(Icons.receipt_long_outlined),
+                prefixIcon: Icon(Symbols.receipt_long_rounded),
                 alignLabelWithHint: true,
               ),
               textInputAction: TextInputAction.next,
@@ -248,7 +249,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                 const Spacer(),
                 TextButton.icon(
                   onPressed: _addTime,
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(Symbols.add_rounded, size: 18),
                   label: const Text('Add Time'),
                 ),
               ],
@@ -271,7 +272,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                   final label = t.format(context);
                   return Chip(
                     label: Text(label),
-                    deleteIcon: const Icon(Icons.close, size: 16),
+                    deleteIcon: const Icon(Symbols.close_rounded, size: 16),
                     onDeleted: _scheduleTimes.length > 1
                         ? () => setState(() => _scheduleTimes.removeAt(e.key))
                         : null,
@@ -283,16 +284,16 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             // Start date
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.calendar_today_outlined),
+              leading: const Icon(Symbols.calendar_today_rounded),
               title: Text('Start Date: ${_formatDate(_startDate)}'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Symbols.chevron_right_rounded),
               onTap: _pickStartDate,
             ),
 
             // End date
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event_outlined),
+              leading: const Icon(Symbols.event_rounded),
               title: Text(_endDate != null
                   ? 'End Date: ${_formatDate(_endDate!)}'
                   : 'End Date: Ongoing (tap to set)'),
@@ -301,11 +302,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                 children: [
                   if (_endDate != null)
                     IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
+                      icon: const Icon(Symbols.clear_rounded, size: 18),
                       tooltip: 'Clear end date',
                       onPressed: () => setState(() => _endDate = null),
                     ),
-                  const Icon(Icons.chevron_right),
+                  const Icon(Symbols.chevron_right_rounded),
                 ],
               ),
               onTap: _pickEndDate,
@@ -321,7 +322,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
               decoration: const InputDecoration(
                 labelText: 'Notes (optional)',
                 hintText: 'Additional notes about this medication…',
-                prefixIcon: Icon(Icons.notes_outlined),
+                prefixIcon: Icon(Symbols.notes_rounded),
                 alignLabelWithHint: true,
               ),
             ),

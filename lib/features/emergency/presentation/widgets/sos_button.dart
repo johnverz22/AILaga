@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class SosButton extends StatefulWidget {
   final VoidCallback onTrigger;
@@ -83,7 +84,7 @@ class _SosButtonState extends State<SosButton> with SingleTickerProviderStateMix
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  widget.isTriggered ? Icons.warning_amber_rounded : Icons.sos_rounded,
+                  widget.isTriggered ? Symbols.warning_amber_rounded : Symbols.sos_rounded,
                   color: Colors.white,
                   size: 64,
                 ),

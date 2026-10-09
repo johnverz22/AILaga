@@ -5,6 +5,7 @@ import '../data/medication_providers.dart';
 import '../domain/medication_entity.dart';
 import 'widgets/medication_card.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Lists all medication schedules for the primary care recipient.
 /// Active schedules appear first; inactive below.
@@ -20,7 +21,7 @@ class MedicationsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Medications')),
       body: recipientAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
         data: (recipient) {
           if (recipient == null) {
             return Center(
@@ -29,7 +30,7 @@ class MedicationsScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.medication_outlined,
+                    Icon(Symbols.medication_rounded,
                         size: 64,
                         color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                     const SizedBox(height: 20),
@@ -56,7 +57,7 @@ class MedicationsScreen extends ConsumerWidget {
 
           return activeAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            error: (e, _) => Center(child: Text('Something went wrong. Try again.')),
             data: (schedules) =>
                 _buildList(context, ref, recipient.id, schedules),
           );
@@ -67,7 +68,7 @@ class MedicationsScreen extends ConsumerWidget {
             ? FloatingActionButton.extended(
                 onPressed: () =>
                     context.push('/medications/add', extra: r.id),
-                icon: const Icon(Icons.add),
+                icon: const Icon(Symbols.add_rounded),
                 label: const Text('Add Medication'),
               )
             : null,
@@ -90,7 +91,7 @@ class MedicationsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.medication_outlined,
+              Icon(Symbols.medication_rounded,
                   size: 64,
                   color: theme.colorScheme.primary.withValues(alpha: 0.4)),
               const SizedBox(height: 20),

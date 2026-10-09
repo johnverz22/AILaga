@@ -43,12 +43,15 @@ class DeterministicCareBriefService implements CareBriefService {
     final notes = await _careNoteRepo.getForDateRange(
         recipientId, periodStart, periodEnd);
 
-    // Map to Brief Items
+    // Map to Brief Items — resolve the real medication name from the
+    // schedule; an occurrence only stores the schedule's ID.
+    final schedules = await _medicationRepo.getAllSchedules(recipientId);
+    final medNameById = {for (final s in schedules) s.id: s.medicationName};
+
     final medBriefItems = occurrences
         .map((o) => MedicationBriefItem(
               id: o.id,
-              name: o
-                  .medicationScheduleId, // Use medicationScheduleId as name identifier
+              name: medNameById[o.medicationScheduleId] ?? 'Medication',
               status: o.status.name,
               scheduledTime:
                   o.scheduledAt, // Use scheduledAt instead of scheduledTime
@@ -96,12 +99,12 @@ class DeterministicCareBriefService implements CareBriefService {
 
     final itemsRequiringReview = <String>[];
     if (unconfirmedMeds.isNotEmpty) {
-      itemsRequiringReview
-          .add('${unconfirmedMeds.length} unconfirmed medication(s)');
+      itemsRequiringReview.add(
+          '${unconfirmedMeds.length} unconfirmed ${unconfirmedMeds.length == 1 ? 'medication' : 'medications'}');
     }
     if (unreviewedNotes.isNotEmpty) {
-      itemsRequiringReview
-          .add('${unreviewedNotes.length} unreviewed care note(s)');
+      itemsRequiringReview.add(
+          '${unreviewedNotes.length} unreviewed care ${unreviewedNotes.length == 1 ? 'note' : 'notes'}');
     }
 
     // Generate formatted text

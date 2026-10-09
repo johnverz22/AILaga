@@ -70,6 +70,12 @@ class ModelManager {
   final _statusController = StreamController<ModelStatus>.broadcast();
   HttpClient? _client;
   bool _cancelRequested = false;
+  Future<void>? _installInFlight;
+
+  /// Last status emitted this session. While a download is in flight this is
+  /// the truth — the filesystem (.part exists) can't tell "downloading" from
+  /// "paused", so new stream subscribers must not get a stale status.
+  ModelStatus? _lastStatus;
 
   ModelManager(this.model, {Future<int?> Function()? freeSpaceProbe})
       : _freeSpaceProbe = freeSpaceProbe;
@@ -101,6 +107,7 @@ class ModelManager {
   }
 
   Future<ModelStatus> currentStatus() async {
+    if (_installInFlight != null && _lastStatus != null) return _lastStatus!;
     final f = await _modelFile;
     if (await f.exists()) {
       return ModelStatus(
@@ -116,13 +123,36 @@ class ModelManager {
   }
 
   /// Downloads the model, resuming from a .part file if present.
-  Future<void> install() async {
+  ///
+  /// Single-flight: a second call while a download is running returns the
+  /// same future. Two concurrent installs would write the same .part file
+  /// and interleave statuses — the cause of bouncing/resetting progress.
+  Future<void> install() =>
+      _installInFlight ??=
+          _runInstall().whenComplete(() => _installInFlight = null);
+
+  Future<void> _runInstall() async {
     _cancelRequested = false;
-    _client = HttpClient();
+    IOSink? sink;
+    var received = 0;
+    int? total;
+    var attempt = 0;
+    const maxAttempts = 6;
 
     try {
+      // An empty/malformed URL (e.g. unset --dart-define) must fail cleanly,
+      // not crash inside Uri.parse with "No host specified in URI".
+      final uri = Uri.tryParse(model.url);
+      if (uri == null ||
+          !uri.hasAuthority ||
+          (uri.scheme != 'https' && uri.scheme != 'http')) {
+        _emit(const ModelStatus(
+            state: ModelInstallState.error, error: 'no_download_url'));
+        return;
+      }
+
       // HEAD to learn the real file size before writing anything.
-      final totalBytes = await _headContentLength();
+      final totalBytes = await _headContentLength(uri);
       if (totalBytes != null && _freeSpaceProbe != null) {
         final free = await _freeSpaceProbe();
         if (free != null && free < totalBytes) {
@@ -135,56 +165,146 @@ class ModelManager {
       }
 
       final partial = await _partialFile;
-      var sinkStart = await partial.exists() ? await partial.length() : 0;
-      if (totalBytes != null && sinkStart >= totalBytes) {
-        await partial.delete();
-        sinkStart = 0;
-      }
-      final request =
-          await _client!.getUrl(Uri.parse(model.url));
-      if (sinkStart > 0) {
-        request.headers.set(HttpHeaders.rangeHeader, 'bytes=$sinkStart-');
-      }
-      final response = await request.close();
+      var finished = false;
 
-      if (response.statusCode >= 400) {
-        _emit(ModelStatus(
-            state: ModelInstallState.error,
-            error: 'http_${response.statusCode}'));
-        return;
-      }
-      // Server ignored our Range header → restart from scratch.
-      final resumed = sinkStart > 0 && response.statusCode == 206;
-      if (sinkStart > 0 && !resumed) {
-        await partial.delete();
-      }
+      // Attempt loop: a multi-GB download on mobile WILL hit dropped or
+      // half-open connections. Each retry resumes from the .part file,
+      // so a stall costs nothing but a reconnect.
+      while (!finished) {
+        attempt++;
+        // Fresh client per attempt — a reset socket must not be reused.
+        _client = HttpClient()
+          ..connectionTimeout = const Duration(seconds: 30)
+          ..idleTimeout = const Duration(seconds: 30);
+        try {
+          var sinkStart =
+              await partial.exists() ? await partial.length() : 0;
+          if (totalBytes != null && sinkStart >= totalBytes) {
+            await partial.delete();
+            sinkStart = 0;
+          }
+          final request = await _client!.getUrl(uri);
+          if (sinkStart > 0) {
+            request.headers
+                .set(HttpHeaders.rangeHeader, 'bytes=$sinkStart-');
+          }
+          final response = await request.close();
 
-      final sink = partial.openWrite(
-          mode: resumed ? FileMode.append : FileMode.write);
-      var received = resumed ? sinkStart : 0;
-      final total = response.contentLength > 0
-          ? (resumed ? sinkStart + response.contentLength : response.contentLength)
-          : totalBytes;
+          if (response.statusCode ==
+              HttpStatus.requestedRangeNotSatisfiable) {
+            // Server can't serve that range — .part is stale. Restart.
+            if (await partial.exists()) await partial.delete();
+            continue;
+          }
+          if (response.statusCode >= 400 &&
+              response.statusCode != 429 &&
+              response.statusCode < 500) {
+            _emit(ModelStatus(
+                state: ModelInstallState.error,
+                error: 'http_${response.statusCode}'));
+            return;
+          }
+          if (response.statusCode >= 400) {
+            // 429/5xx — server-side hiccup, worth retrying.
+            throw HttpException('http_${response.statusCode}', uri: uri);
+          }
 
-      await for (final chunk in response) {
-        if (_cancelRequested) {
-          await sink.flush();
-          await sink.close();
+          // Server ignored our Range header → restart from scratch.
+          final resumed =
+              sinkStart > 0 && response.statusCode == HttpStatus.partialContent;
+          if (sinkStart > 0 && !resumed) {
+            await partial.delete();
+            sinkStart = 0;
+          }
+
+          final s = partial.openWrite(
+              mode: resumed ? FileMode.append : FileMode.write);
+          sink = s;
+          received = resumed ? sinkStart : 0;
+          total = response.contentLength > 0
+              ? (resumed
+                  ? sinkStart + response.contentLength
+                  : response.contentLength)
+              : totalBytes;
+
+          // Emit immediately so the UI shows progress, then throttle —
+          // one rebuild per chunk makes the indicator flicker.
           _emit(ModelStatus(
-              state: ModelInstallState.paused,
+              state: ModelInstallState.downloading,
               progress: _frac(received, total),
-              sizeBytes: total));
-          return;
+              sizeBytes: total ?? received));
+          var lastEmit = DateTime.now().millisecondsSinceEpoch;
+          var sinceFlush = 0;
+
+          // Stream.timeout: if no bytes arrive for 30 s the socket is
+          // dead or the CDN stopped feeding — bail out and resume on a
+          // fresh connection instead of hanging forever.
+          await for (final chunk
+              in response.timeout(const Duration(seconds: 30))) {
+            s.add(chunk);
+            received += chunk.length;
+            sinceFlush += chunk.length;
+            // Flush periodically — unawaited adds queue bytes in memory,
+            // which balloons to GBs when the network outruns the disk.
+            if (sinceFlush >= 4 * 1024 * 1024) {
+              await s.flush();
+              sinceFlush = 0;
+            }
+            if (_cancelRequested) {
+              await s.flush();
+              await s.close();
+              sink = null;
+              await _emitPaused(partial, received, total);
+              return;
+            }
+            final now = DateTime.now().millisecondsSinceEpoch;
+            if (now - lastEmit >= 200) {
+              lastEmit = now;
+              _emit(ModelStatus(
+                  state: ModelInstallState.downloading,
+                  progress: _frac(received, total),
+                  sizeBytes: total ?? received));
+            }
+          }
+          await s.flush();
+          await s.close();
+          sink = null;
+          finished = true;
+        } catch (e) {
+          try {
+            await sink?.flush();
+            await sink?.close();
+          } catch (_) {}
+          sink = null;
+          _client?.close();
+          _client = null;
+
+          // pause() closes the client mid-stream — a user pause, not a
+          // failure.
+          if (_cancelRequested) {
+            await _emitPaused(partial, received, total);
+            return;
+          }
+          if (attempt >= maxAttempts) {
+            _emit(const ModelStatus(
+                state: ModelInstallState.error,
+                error: 'download_failed'));
+            return;
+          }
+          // Keep the UI on the progress view while we back off and
+          // resume from the .part file.
+          _emit(ModelStatus(
+              state: ModelInstallState.downloading,
+              progress: _frac(received, total),
+              sizeBytes: total ?? received));
+          await Future<void>.delayed(
+              Duration(seconds: attempt <= 5 ? 1 << attempt : 30));
+          if (_cancelRequested) {
+            await _emitPaused(partial, received, total);
+            return;
+          }
         }
-        sink.add(chunk);
-        received += chunk.length;
-        _emit(ModelStatus(
-            state: ModelInstallState.downloading,
-            progress: _frac(received, total),
-            sizeBytes: total));
       }
-      await sink.flush();
-      await sink.close();
 
       // Verify checksum when we have one.
       if (model.sha256 != null) {
@@ -207,8 +327,17 @@ class ModelManager {
       _emit(ModelStatus(
           state: ModelInstallState.installed, progress: 1.0, sizeBytes: total));
     } catch (e) {
-      _emit(ModelStatus(
-          state: ModelInstallState.error, error: e.toString()));
+      if (_cancelRequested) {
+        try {
+          await sink?.flush();
+          await sink?.close();
+        } catch (_) {}
+        final partial = await _partialFile;
+        await _emitPaused(partial, received, total);
+      } else {
+        _emit(ModelStatus(
+            state: ModelInstallState.error, error: e.toString()));
+      }
     } finally {
       _client?.close();
       _client = null;
@@ -232,14 +361,32 @@ class ModelManager {
     _emit(ModelStatus.notInstalled);
   }
 
-  Future<int?> _headContentLength() async {
+  Future<int?> _headContentLength(Uri uri) async {
+    // Own client — the attempt loop rotates _client per retry.
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 30);
     try {
-      final req = await _client!.headUrl(Uri.parse(model.url));
+      final req = await client.headUrl(uri);
       final res = await req.close();
       await res.drain<void>();
       return res.contentLength > 0 ? res.contentLength : null;
     } catch (_) {
       return null;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Emits `paused` only if the .part file actually survived — delete()
+  /// may have wiped it between pause() and this emit.
+  Future<void> _emitPaused(File partial, int received, int? total) async {
+    if (await partial.exists()) {
+      _emit(ModelStatus(
+          state: ModelInstallState.paused,
+          progress: _frac(received, total),
+          sizeBytes: total ?? received));
+    } else {
+      _emit(ModelStatus.notInstalled);
     }
   }
 
@@ -247,6 +394,7 @@ class ModelManager {
       (total == null || total <= 0) ? null : received / total;
 
   void _emit(ModelStatus s) {
+    _lastStatus = s;
     if (!_statusController.isClosed) _statusController.add(s);
   }
 

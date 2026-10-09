@@ -6,6 +6,7 @@ import '../domain/measurement_entity.dart';
 import '../domain/measurement_type.dart';
 import '../../../core/utilities/validators.dart';
 import '../../../core/utilities/uuid_generator.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Form to record a new measurement. Adapts fields per type:
 ///   - Blood Pressure: systolic + diastolic (both required), unit = mmHg
@@ -311,10 +312,10 @@ class _AddMeasurementScreenState
             // Date/time picker
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.access_time_outlined),
+              leading: const Icon(Symbols.access_time_rounded),
               title: Text(_formatDateTime(_measuredAt)),
               subtitle: const Text('Tap to change measurement time'),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Symbols.chevron_right_rounded),
               onTap: _pickDateTime,
             ),
             const Divider(),
@@ -328,7 +329,7 @@ class _AddMeasurementScreenState
               decoration: const InputDecoration(
                 labelText: 'Notes (optional)',
                 hintText: 'Any relevant context…',
-                prefixIcon: Icon(Icons.notes_outlined),
+                prefixIcon: Icon(Symbols.notes_rounded),
                 alignLabelWithHint: true,
               ),
             ),

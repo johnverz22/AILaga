@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class CountdownOverlay extends StatefulWidget {
   final VoidCallback onCancel;
@@ -54,7 +55,7 @@ class _CountdownOverlayState extends State<CountdownOverlay> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.warning_rounded,
+                Symbols.warning_rounded,
                 color: Colors.white,
                 size: 80,
               ),

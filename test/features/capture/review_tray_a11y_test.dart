@@ -8,6 +8,7 @@ import 'package:ailaga/core/database/database_provider.dart';
 import 'package:ailaga/features/capture/presentation/review_tray_screen.dart';
 import 'package:ailaga/services/ai/local/proposals/proposal_models.dart';
 import 'package:ailaga/services/ai/local/proposals/proposal_repository.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Audit D/E: review tray must not overflow at 130%/200% font scale or on
 /// small phones; helper confirm button must be >= 64dp; Sure/Check badges
@@ -99,7 +100,7 @@ void main() {
 
         // Any RenderFlex overflow/layout error surfaces as an exception.
         expect(tester.takeException(), isNull);
-        expect(find.textContaining('Kumpirmahin lahat'), findsOneWidget);
+        expect(find.textContaining('Confirm all'), findsOneWidget);
       });
     }
   }
@@ -110,10 +111,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final button = find.widgetWithText(
-        FilledButton, 'Kumpirmahin lahat (2)');
+        FilledButton, 'Confirm all (2)');
     expect(button, findsOneWidget);
     final size = tester.getSize(find.ancestor(
-      of: find.textContaining('Kumpirmahin lahat'),
+      of: find.textContaining('Confirm all'),
       matching: find.byType(SizedBox),
     ).first);
     expect(size.height, greaterThanOrEqualTo(64));
@@ -126,7 +127,7 @@ void main() {
 
     expect(find.text('Sure'), findsOneWidget);
     expect(find.text('Check'), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle), findsWidgets);
-    expect(find.byIcon(Icons.warning_amber), findsOneWidget);
+    expect(find.byIcon(Symbols.check_circle_rounded), findsWidgets);
+    expect(find.byIcon(Symbols.warning_amber_rounded), findsOneWidget);
   });
 }

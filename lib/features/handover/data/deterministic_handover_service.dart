@@ -57,24 +57,32 @@ class DeterministicHandoverService implements HandoverService {
     final recentMeasurements = <String>[];
     final upcomingAppointments = <String>[];
 
+    // Resolve real medication names — occurrences only store the
+    // schedule's ID, and a UUID must never appear in shared text.
+    final schedules = await _medicationRepo.getAllSchedules(recipientId);
+    final medNameById = {for (final s in schedules) s.id: s.medicationName};
+
     final now = DateTime.now();
 
     for (final o in occurrences) {
+      final medName = medNameById[o.medicationScheduleId] ?? 'Medication';
       final timeStr = DateFormatter.formatTime(
           o.scheduledAt); // Use scheduledAt instead of scheduledTime
       if (o.status == MedicationStatus.taken) {
-        completedTasks.add(
-            '${o.medicationScheduleId} taken at $timeStr'); // Use medicationScheduleId instead of medicationName
+        completedTasks.add('$medName taken at $timeStr');
       } else if (o.status == MedicationStatus.pending &&
           o.scheduledAt.isBefore(now)) {
         // Use scheduledAt instead of scheduledTime
-        unconfirmedItems.add(
-            '${o.medicationScheduleId} not confirmed since $timeStr'); // Use medicationScheduleId instead of medicationName
+        unconfirmedItems.add('$medName not confirmed since $timeStr');
       }
     }
 
     for (final a in appointments) {
-      completedTasks.add('${a.purpose} appointment completed');
+      // Only appointments actually marked completed may be claimed as
+      // done — scheduled or cancelled ones are not.
+      if (a.status == 'completed') {
+        completedTasks.add('${a.purpose} appointment completed');
+      }
     }
 
     for (final n in notes) {

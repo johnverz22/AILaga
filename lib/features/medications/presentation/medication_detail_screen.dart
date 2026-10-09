@@ -5,6 +5,7 @@ import '../data/medication_providers.dart';
 import '../domain/medication_entity.dart';
 import 'widgets/occurrence_tile.dart';
 import '../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Detail view for a medication schedule showing:
 ///   - Schedule info (name, instructions, times)
@@ -68,9 +69,9 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             overflow: TextOverflow.ellipsis),
         actions: [
           if (schedule.isActive) ...[
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit',
+            TextButton.icon(
+              icon: const Icon(Symbols.edit_rounded, size: 20),
+              label: const Text('Edit'),
               onPressed: () => context.push(
                 '/medications/add',
                 extra: {
@@ -79,9 +80,9 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                 },
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.pause_circle_outline),
-              tooltip: 'Deactivate',
+            TextButton.icon(
+              icon: const Icon(Symbols.pause_circle_rounded, size: 20),
+              label: const Text('Pause'),
               onPressed: () => _confirmDeactivate(context, ref, schedule),
             ),
           ],
@@ -192,7 +193,7 @@ class _ScheduleSummaryCard extends StatelessWidget {
             if (schedule.prescribedInstructions?.isNotEmpty == true) ...[
               Row(
                 children: [
-                  Icon(Icons.receipt_long_outlined,
+                  Icon(Symbols.receipt_long_rounded,
                       size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
                   const SizedBox(width: 8),
                   Expanded(
@@ -207,7 +208,7 @@ class _ScheduleSummaryCard extends StatelessWidget {
             ],
             Row(
               children: [
-                Icon(Icons.date_range_outlined,
+                Icon(Symbols.date_range_rounded,
                     size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
                 const SizedBox(width: 8),
                 Text(
@@ -221,7 +222,7 @@ class _ScheduleSummaryCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.notes_outlined,
+                  Icon(Symbols.notes_rounded,
                       size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
                   const SizedBox(width: 8),
                   Expanded(
@@ -263,7 +264,7 @@ class _DayNavigator extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Symbols.chevron_left_rounded),
             onPressed: onPrev,
             tooltip: 'Previous day',
           ),
@@ -277,7 +278,7 @@ class _DayNavigator extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.chevron_right,
+            icon: Icon(Symbols.chevron_right_rounded,
                 color: onNext == null
                     ? theme.colorScheme.onSurface.withValues(alpha: 0.2)
                     : null),
@@ -317,7 +318,7 @@ class _OccurrencesList extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.inbox_outlined,
+                  Icon(Symbols.inbox_rounded,
                       size: 48,
                       color: theme.colorScheme.onSurface
                           .withValues(alpha: 0.3)),

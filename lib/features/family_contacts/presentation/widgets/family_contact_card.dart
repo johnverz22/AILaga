@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/family_contact_entity.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// A list tile card for a single family contact.
 ///
@@ -85,50 +86,41 @@ class FamilyContactCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
 
-            // Action buttons
+            // Action buttons — icon + word, never icon alone.
             Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _iconBtn(
-                      context,
-                      icon: Icons.call_outlined,
-                      color: colorScheme.primary,
-                      tooltip: 'Call',
-                      onPressed: () => _call(contact.phoneNumber),
-                    ),
-                    _iconBtn(
-                      context,
-                      icon: Icons.sms_outlined,
-                      color: colorScheme.secondary,
-                      tooltip: 'SMS',
-                      onPressed: () => _sms(contact.phoneNumber),
-                    ),
-                  ],
+                _actionBtn(
+                  context,
+                  icon: Symbols.call_rounded,
+                  color: colorScheme.primary,
+                  label: 'Call',
+                  onPressed: () => _call(contact.phoneNumber),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (onEdit != null)
-                      _iconBtn(
-                        context,
-                        icon: Icons.edit_outlined,
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                        tooltip: 'Edit',
-                        onPressed: onEdit!,
-                      ),
-                    if (onDelete != null)
-                      _iconBtn(
-                        context,
-                        icon: Icons.delete_outline,
-                        color: colorScheme.error.withValues(alpha: 0.7),
-                        tooltip: 'Delete',
-                        onPressed: onDelete!,
-                      ),
-                  ],
+                _actionBtn(
+                  context,
+                  icon: Symbols.sms_rounded,
+                  color: colorScheme.secondary,
+                  label: 'Text',
+                  onPressed: () => _sms(contact.phoneNumber),
                 ),
+                if (onEdit != null)
+                  _actionBtn(
+                    context,
+                    icon: Symbols.edit_rounded,
+                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                    label: 'Edit',
+                    onPressed: onEdit!,
+                  ),
+                if (onDelete != null)
+                  _actionBtn(
+                    context,
+                    icon: Symbols.delete_rounded,
+                    color: colorScheme.error.withValues(alpha: 0.7),
+                    label: 'Delete',
+                    onPressed: onDelete!,
+                  ),
               ],
             ),
           ],
@@ -157,20 +149,31 @@ class FamilyContactCard extends StatelessWidget {
     );
   }
 
-  Widget _iconBtn(
+  Widget _actionBtn(
     BuildContext context, {
     required IconData icon,
     required Color color,
-    required String tooltip,
+    required String label,
     required VoidCallback onPressed,
   }) {
-    return IconButton(
-      icon: Icon(icon, size: 20),
-      color: color,
-      tooltip: tooltip,
-      onPressed: onPressed,
-      padding: const EdgeInsets.all(6),
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onPressed,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                  color: color, fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

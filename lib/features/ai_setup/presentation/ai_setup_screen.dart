@@ -7,6 +7,7 @@ import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/model/device_probe.dart';
 import '../../../services/ai/local/model/model_manager.dart';
 import '../data/ai_setup_providers.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// "Phone helper" setup screen (UI spec H12). Helper-mode density.
 /// Download → progress → ready. Skip keeps Basic mode fully working.
@@ -48,11 +49,11 @@ class AiSetupScreen extends ConsumerWidget {
         return _installedView(context, ref, status);
       case ModelInstallState.error:
         return Column(children: [
-          const Icon(Icons.error_outline, size: 64, color: Color(0xFFB3261E)),
+          const Icon(Symbols.error_rounded, size: 64, color: Color(0xFFB3261E)),
           const SizedBox(height: 16),
           Text('Download failed', style: _title(context)),
           const SizedBox(height: 8),
-          Text(status.error ?? '', style: _body(context)),
+          Text(_errorText(status.error), style: _body(context)),
           const SizedBox(height: 24),
           _primaryButton(context, 'Try again',
               () => ref.read(modelManagerProvider).install()),
@@ -65,6 +66,21 @@ class AiSetupScreen extends ConsumerWidget {
       case ModelInstallState.notInstalled:
         return _introView(context, ref, status, tier);
     }
+  }
+
+  /// Plain-words version of the error codes ModelManager emits — never show
+  /// raw exception strings here.
+  static String _errorText(String? code) {
+    if (code == 'not_enough_space') {
+      return 'Not enough free space on this phone.';
+    }
+    if (code == 'checksum_mismatch' || code == 'no_download_url') {
+      return 'The download is not ready yet. Try again later.';
+    }
+    if (code != null && code.startsWith('http_')) {
+      return 'Could not reach the server. Try again.';
+    }
+    return 'Check the internet and try again.';
   }
 
   /// Plain-words explanation of why the helper can't run here — no jargon.
@@ -88,13 +104,13 @@ class AiSetupScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.phonelink_lock, size: 80, color: Color(0xFF0B6B6B)),
+        const Icon(Symbols.phonelink_lock_rounded, size: 80, color: Color(0xFF0B6B6B)),
         const SizedBox(height: 16),
         Text('Phone helper', textAlign: TextAlign.center, style: _title(context)),
         const SizedBox(height: 24),
-        _infoRow(Icons.lock_outline, 'Stays on this phone'),
-        _infoRow(Icons.flight_outlined, 'Works offline'),
-        _infoRow(Icons.mic_none, 'Hears Lola'),
+        _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
+        _infoRow(Symbols.flight_rounded, 'Works offline'),
+        _infoRow(Symbols.mic_none_rounded, 'Hears Lola'),
         const Spacer(),
         if (status.state == ModelInstallState.paused)
           Padding(
@@ -154,7 +170,7 @@ class AiSetupScreen extends ConsumerWidget {
         OutlinedButton.icon(
           style: _secondaryStyle(),
           onPressed: () => ref.read(modelManagerProvider).pause(),
-          icon: const Icon(Icons.pause),
+          icon: const Icon(Symbols.pause_rounded),
           label: const Text('Pause'),
         ),
       ],
@@ -166,12 +182,12 @@ class AiSetupScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.check_circle, size: 80, color: Color(0xFF1B7F3B)),
+        const Icon(Symbols.check_circle_rounded, size: 80, color: Color(0xFF1B7F3B)),
         const SizedBox(height: 16),
         Text('Ready', textAlign: TextAlign.center, style: _title(context)),
         const SizedBox(height: 24),
-        _infoRow(Icons.psychology_outlined, 'Helper: Ready'),
-        _infoRow(Icons.storage_outlined,
+        _infoRow(Symbols.psychology_rounded, 'Helper: Ready'),
+        _infoRow(Symbols.storage_rounded,
             'Size: ${_sizeLabel(status.sizeBytes)}'),
         const Spacer(),
         OutlinedButton.icon(
@@ -180,7 +196,7 @@ class AiSetupScreen extends ConsumerWidget {
                 const WidgetStatePropertyAll(Color(0xFFB3261E)),
           ),
           onPressed: () => ref.read(modelManagerProvider).delete(),
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Symbols.delete_rounded),
           label: const Text('Delete'),
         ),
         const SizedBox(height: 12),
@@ -216,7 +232,7 @@ class AiSetupScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Icon(
-          available ? Icons.check_circle : Icons.phonelink_lock,
+          available ? Symbols.check_circle_rounded : Symbols.phonelink_lock_rounded,
           size: 80,
           color: available
               ? const Color(0xFF1B7F3B)
@@ -227,12 +243,12 @@ class AiSetupScreen extends ConsumerWidget {
             textAlign: TextAlign.center, style: _title(context)),
         const SizedBox(height: 24),
         if (available) ...[
-          _infoRow(Icons.lock_outline, 'Stays on this phone'),
-          _infoRow(Icons.flight_outlined, 'Works offline'),
-          _infoRow(Icons.mic_none, 'Hears Lola'),
+          _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
+          _infoRow(Symbols.flight_rounded, 'Works offline'),
+          _infoRow(Symbols.mic_none_rounded, 'Hears Lola'),
         ] else ...[
-          _infoRow(Icons.settings_outlined, _iosReasonText(reason)),
-          _infoRow(Icons.keyboard_alt_outlined,
+          _infoRow(Symbols.settings_rounded, _iosReasonText(reason)),
+          _infoRow(Symbols.keyboard_alt_rounded,
               'Typing still works either way'),
         ],
         const Spacer(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/measurement_entity.dart';
 import '../../domain/measurement_type.dart';
 import '../../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Displays a single measurement reading in a themed card.
 class MeasurementCard extends StatelessWidget {
@@ -96,12 +97,14 @@ class MeasurementCard extends StatelessWidget {
               ),
             ),
 
-            // Delete action
+            // Delete action — icon + word, never icon alone.
             if (onDelete != null)
-              IconButton(
-                icon: Icon(Icons.delete_outline,
-                    size: 20, color: cs.error.withValues(alpha: 0.6)),
-                tooltip: 'Delete',
+              TextButton.icon(
+                icon: Icon(Symbols.delete_rounded,
+                    size: 20, color: cs.error.withValues(alpha: 0.7)),
+                label: Text('Delete',
+                    style:
+                        TextStyle(color: cs.error.withValues(alpha: 0.8))),
                 onPressed: onDelete,
               ),
           ],
@@ -126,15 +129,15 @@ class MeasurementCard extends StatelessWidget {
   (IconData, Color) _typeStyle(MeasurementType type) {
     switch (type) {
       case MeasurementType.bloodPressure:
-        return (Icons.favorite_outline, const Color(0xFFDC2626));
+        return (Symbols.blood_pressure_rounded, const Color(0xFFDC2626));
       case MeasurementType.pulse:
-        return (Icons.monitor_heart_outlined, const Color(0xFFDB2777));
+        return (Symbols.monitor_heart_rounded, const Color(0xFFDB2777));
       case MeasurementType.temperature:
-        return (Icons.thermostat_outlined, const Color(0xFFD97706));
+        return (Symbols.thermostat_rounded, const Color(0xFFD97706));
       case MeasurementType.weight:
-        return (Icons.monitor_weight_outlined, const Color(0xFF0891B2));
+        return (Symbols.monitor_weight_rounded, const Color(0xFF0891B2));
       case MeasurementType.bloodGlucose:
-        return (Icons.water_drop_outlined, const Color(0xFF7C3AED));
+        return (Symbols.glucose_rounded, const Color(0xFF7C3AED));
     }
   }
 }

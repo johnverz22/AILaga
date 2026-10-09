@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/appointment_entity.dart';
 import '../../../../core/utilities/date_utils.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Displays a single appointment with status badge, date, provider and actions.
 class AppointmentCard extends StatelessWidget {
@@ -117,7 +118,7 @@ class AppointmentCard extends StatelessWidget {
                   // Actions menu
                   if (appointment.status == 'scheduled')
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, size: 20),
+                      icon: const Icon(Symbols.more_vert_rounded, size: 20),
                       onSelected: (action) {
                         if (action == 'complete') onMarkCompleted?.call();
                         if (action == 'cancel') onMarkCancelled?.call();
@@ -127,7 +128,7 @@ class AppointmentCard extends StatelessWidget {
                         const PopupMenuItem(
                             value: 'complete',
                             child: Row(children: [
-                              Icon(Icons.check_circle_outline,
+                              Icon(Symbols.check_circle_rounded,
                                   color: Color(0xFF16A34A), size: 18),
                               SizedBox(width: 10),
                               Text('Mark Completed'),
@@ -135,7 +136,7 @@ class AppointmentCard extends StatelessWidget {
                         const PopupMenuItem(
                             value: 'cancel',
                             child: Row(children: [
-                              Icon(Icons.cancel_outlined,
+                              Icon(Symbols.cancel_rounded,
                                   color: Color(0xFFD97706), size: 18),
                               SizedBox(width: 10),
                               Text('Cancel Appointment'),
@@ -143,7 +144,7 @@ class AppointmentCard extends StatelessWidget {
                         const PopupMenuItem(
                             value: 'delete',
                             child: Row(children: [
-                              Icon(Icons.delete_outline,
+                              Icon(Symbols.delete_rounded,
                                   color: Colors.red, size: 18),
                               SizedBox(width: 10),
                               Text('Delete'),
@@ -151,10 +152,13 @@ class AppointmentCard extends StatelessWidget {
                       ],
                     )
                   else if (onDelete != null)
-                    IconButton(
-                      icon: Icon(Icons.delete_outline,
+                    TextButton.icon(
+                      icon: Icon(Symbols.delete_rounded,
                           size: 18,
-                          color: cs.error.withValues(alpha: 0.6)),
+                          color: cs.error.withValues(alpha: 0.7)),
+                      label: Text('Delete',
+                          style: TextStyle(
+                              color: cs.error.withValues(alpha: 0.8))),
                       onPressed: onDelete,
                     ),
                 ],
@@ -181,11 +185,11 @@ class AppointmentCard extends StatelessWidget {
   (Color, IconData, String) _statusStyle(ColorScheme cs) {
     switch (appointment.status) {
       case 'completed':
-        return (const Color(0xFF16A34A), Icons.check_circle_outline, 'Completed');
+        return (const Color(0xFF16A34A), Symbols.check_circle_rounded, 'Completed');
       case 'cancelled':
-        return (const Color(0xFFD97706), Icons.cancel_outlined, 'Cancelled');
+        return (const Color(0xFFD97706), Symbols.cancel_rounded, 'Cancelled');
       default:
-        return (cs.primary, Icons.calendar_today_outlined, 'Scheduled');
+        return (cs.primary, Symbols.calendar_today_rounded, 'Scheduled');
     }
   }
 
