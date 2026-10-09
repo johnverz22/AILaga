@@ -1,0 +1,16 @@
+# AI Assistant Rules
+
+You are assisting with the AILaga Flutter Project.
+
+Read `docs/AI_AGENT_INSTRUCTIONS.md` before starting work.
+Refer to `docs/ARCHITECTURE.md` and `docs/INTEGRATION_GUIDE.md` for technical context.
+
+When working on UI:
+- Use the predefined palette and `google_fonts` (Inter) from `lib/app/theme.dart`.
+- Maintain accessibility: large touch targets (>= 48dp), high contrast.
+- Ensure the SOS button uses the distinct red without dominating the UI.
+
+When working on Data:
+- Check `docs/DEVELOPER_A_TASKS.md` for requirements.
+- Never claim successful message delivery unless verified.
+- Ensure data is kept strictly offline.
