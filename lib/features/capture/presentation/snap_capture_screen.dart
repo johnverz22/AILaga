@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../app/app_bar_actions.dart';
 import '../../../services/ai/local/ai_providers.dart';
@@ -66,7 +68,6 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                 style: TextStyle(fontSize: 13),
               ),
             ),
-
           Text('What is the photo?', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Row(
@@ -112,7 +113,6 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
             }).toList(),
           ),
           const SizedBox(height: 24),
-
           if (_photo != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
@@ -132,7 +132,6 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
             ),
             const SizedBox(height: 8),
           ],
-
           Row(
             children: [
               Expanded(
@@ -162,13 +161,26 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
               ),
             ],
           ),
-
           if (_photo != null) ...[
             const SizedBox(height: 16),
+            if (isBasic)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: const Text(
+                  'Phone helper is off. To analyze photos, install it in Settings → Phone helper.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
             SizedBox(
               height: 64,
               child: FilledButton.icon(
-                onPressed: _processing ? null : _processPhoto,
+                onPressed: isBasic || _processing ? null : _processPhoto,
                 icon: _processing
                     ? const SizedBox(
                         width: 20,
@@ -186,10 +198,30 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
   }
 
   Future<void> _pick({required bool camera}) async {
-    final input =
-        camera ? await _snapService.snapPhoto() : await _snapService.pickFromGallery();
+    if (camera) {
+      final status = await Permission.camera.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Camera access denied. Allow it in phone Settings to take photos.'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    final input = camera
+        ? await _snapService.snapPhoto()
+        : await _snapService.pickFromGallery();
     if (input != null && mounted) {
       setState(() => _photo = input);
+    } else if (input == null && mounted && camera) {
+      // Covers remaining null cases: user cancelled or camera failed.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open camera. Try again.')),
+      );
     }
   }
 
@@ -259,8 +291,8 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
       );
       final staged = <StagedProposal>[];
       for (final p in validated) {
-        final id = await captureRepo.createProposal(
-            captureId: captureId, record: p);
+        final id =
+            await captureRepo.createProposal(captureId: captureId, record: p);
         staged.add(StagedProposal(proposalId: id, record: p));
       }
 
@@ -285,8 +317,11 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final message = e is AiUnavailable
+            ? 'Phone helper is off. Install it in Settings → Phone helper to analyze photos.'
+            : 'Something went wrong. Try again.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Something went wrong. Try again.'), backgroundColor: Colors.red),
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
         setState(() => _processing = false);
       }

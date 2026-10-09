@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Fix Photo Analyze functionality: the Process button ('Use this photo') is not disabled in Basic mode (no model installed), causing AiUnavailable errors shown as generic 'Something went wrong' instead of a clear 'install helper' message. Also add camera permission denial feedback — SnapService.snapPhoto() returns null silently when camera is denied, with no user-visible explanation. FEAT-002 is independent of FEAT-001 and can be implemented in any order, but FEAT-001 should be committed first so they do not conflict on the same files (snap_capture_screen.dart is only touched here).",
+  "status": "completed",
+  "steps": [
+    "Read lib/features/capture/presentation/snap_capture_screen.dart fully before making any changes.",
+    "In _pick({required bool camera}): before calling _snapService.snapPhoto() (camera=true case), request Permission.camera via permission_handler. If denied (PermissionStatus.denied or .permanentlyDenied), show a SnackBar: 'Camera access denied. Allow it in phone Settings to take photos.' and return early without calling the service. Add import 'package:permission_handler/permission_handler.dart'; at the top. For the gallery path (camera=false), image_picker handles gallery permission itself — no change needed there.",
+    "In the existing null check after _pick: `if (input != null && mounted)` — add an else branch that shows a SnackBar: 'Could not open camera. Try again.' This catches the remaining null cases (user cancelled, etc.).",
+    "In the `if (_photo != null)` section that renders the Process button ('Use this photo'), add the same `isBasic` guard already used by Camera/Gallery buttons: `onPressed: isBasic || _processing ? null : _processPhoto`. Also add a message widget just above the button when `isBasic && _photo != null`: a container with text 'Phone helper is off. To analyze photos, install it in Settings → Phone helper.' styled the same as the existing amber banner at the top.",
+    "In _processPhoto() catch clause: distinguish AiUnavailable from generic errors. If `e is AiUnavailable`, show SnackBar: 'Phone helper is off. Install it in Settings → Phone helper to analyze photos.' For all other errors, keep the existing generic message.",
+    "Run `dart analyze lib/` — confirm 0 issues. Run `dart test test/features/capture/` — confirm all tests pass."
+  ],
+  "acceptance_criteria": [
+    "dart analyze lib/ returns 0 issues",
+    "dart test test/features/capture/ passes all tests",
+    "On device (no model, Basic mode): after selecting a photo, the 'Use this photo' button is disabled (greyed out) and an explanatory message is visible",
+    "On device (no model): tapping Camera on first use shows the OS camera permission dialog",
+    "On device (no model): after denying camera permission, a SnackBar with a clear message is shown (not silent failure)",
+    "On device (model installed): after taking a photo and tapping 'Use this photo', the spinner shows 'Reading…' and the Review Tray opens with proposals",
+    "Button positions, layout structure, and bottom navigation are unchanged (per Part B Rule 6)"
+  ],
+  "verification": [
+    "dart analyze lib/",
+    "dart test test/features/capture/"
+  ],
+  "blocked_reason": null,
+  "findings": "1. `dart analyze lib/` returns 0 issues after changes. 2. `flutter test test/features/capture/` — 18 tests pass, 1 pre-existing failure in review_flow_test.dart ('capture → review → confirm writes records') with 'Asset shaders/ink_sparkle.frag not found' — identical to the pre-existing Windows Impeller shader asset issue documented in FEAT-001. Completely unrelated to FEAT-002 changes. 3. `dart test test/features/capture/` (standalone) fails on this project because package:test is not a direct dev_dependency; same known issue as FEAT-001. Use `flutter test --no-pub` instead. 4. The `isBasic` guard on the Process button and the amber explanatory message below the photo were added without altering button positions or layout structure (per Part B Rule 6). 5. Camera permission is now requested via permission_handler before calling image_picker's snapPhoto(); gallery path unchanged (image_picker handles it). 6. The SnackBar for null camera result only fires on camera=true path to avoid a false-alarm when the user simply cancels the gallery picker."
+}
