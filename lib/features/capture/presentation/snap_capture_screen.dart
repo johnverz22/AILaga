@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/capture/snap_service.dart';
@@ -42,7 +43,24 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
     final isBasic = tierAsync.valueOrNull == AiTier.basic;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kunan ng litrato')),
+      appBar: AppBar(
+        title: const Text('Kunan ng litrato'),
+        actions: [
+          // SOS stays in the app bar on every screen (spec §4.2).
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+              ),
+              onPressed: () => context.push('/emergency'),
+              icon: const Icon(Icons.sos, size: 18),
+              label: const Text('SOS'),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -184,12 +202,13 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
   Future<void> _processPhoto() async {
     final photo = _photo;
     if (photo == null) return;
+    // Guard BEFORE entering the processing state so the spinner can never
+    // get stuck on an early return.
+    final recipient = ref.read(primaryCareRecipientProvider).valueOrNull;
+    if (recipient == null) return;
+
     setState(() => _processing = true);
-
     try {
-      final recipient = ref.read(primaryCareRecipientProvider).valueOrNull;
-      if (recipient == null) return;
-
       final engine = ref.read(localAiEngineProvider);
       final medRepo = ref.read(medicationRepositoryProvider);
       final schedules = await medRepo.getActiveSchedules(recipient.id);
@@ -203,7 +222,10 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
       final transcriptBuf = StringBuffer();
       final proposals = <ProposedRecord>[];
       final sw = Stopwatch()..start();
-      await for (final event in engine.extractFromImage(photo, _intent, ctx)) {
+      // Hard ceiling so "Binabasa..." can never spin forever on a stall.
+      await for (final event in engine
+          .extractFromImage(photo, _intent, ctx)
+          .timeout(const Duration(seconds: 60))) {
         switch (event) {
           case TranscriptUpdated(:final text):
             transcriptBuf.write(text);

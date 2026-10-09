@@ -110,7 +110,8 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                 padding: const EdgeInsets.all(16),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  // Helper-mode primary action ≥ 64 dp (UI spec).
+                  height: 64,
                   child: FilledButton.icon(
                     onPressed: _confirming ? null : _confirmAll,
                     icon: _confirming

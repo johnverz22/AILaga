@@ -290,11 +290,13 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
   /// Audio path: WAV → engine (ASR + extraction) → review.
   /// Temp audio file is deleted right after processing.
   Future<void> _processAudio(AudioClip clip) async {
+    // Guard BEFORE entering the processing state so the spinner can never
+    // get stuck on an early return.
+    final recipient = ref.read(primaryCareRecipientProvider).valueOrNull;
+    if (recipient == null) return;
+
     setState(() => _isProcessing = true);
     try {
-      final recipient = ref.read(primaryCareRecipientProvider).valueOrNull;
-      if (recipient == null) return;
-
       final engine = ref.read(localAiEngineProvider);
       final medRepo = ref.read(medicationRepositoryProvider);
       final schedules = await medRepo.getActiveSchedules(recipient.id);
@@ -308,7 +310,11 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       final proposals = <ProposedRecord>[];
       String? failure;
       final sw = Stopwatch()..start();
-      await for (final event in engine.extractFromAudio(clip, ctx)) {
+      // Hard ceiling so the "thinking" state can never spin forever if the
+      // engine stalls; TimeoutException lands in the catch below.
+      await for (final event in engine
+          .extractFromAudio(clip, ctx)
+          .timeout(const Duration(seconds: 60))) {
         switch (event) {
           case TranscriptUpdated(:final text):
             transcriptBuf.write(text);
