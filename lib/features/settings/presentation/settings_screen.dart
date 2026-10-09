@@ -61,11 +61,11 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const Divider(),
-          _buildSectionHeader('AI Features'),
+          _buildSectionHeader('Phone helper'),
           SwitchListTile(
             secondary: const Icon(Icons.auto_awesome),
-            title: const Text('AI Summaries'),
-            subtitle: const Text('AI summaries are optional. Template-based summaries are always available.'),
+            title: const Text('Phone-made summaries'),
+            subtitle: const Text('Optional. Simple summaries always work.'),
             value: false,
             onChanged: (val) {},
           ),

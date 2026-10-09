@@ -63,7 +63,7 @@ class CareNoteCard extends StatelessWidget {
                         Icon(Icons.auto_awesome, size: 14, color: cs.secondary),
                         const SizedBox(width: 6),
                         Text(
-                          'AI Summary',
+                          'Phone summary',
                           style: theme.textTheme.labelSmall!.copyWith(color: cs.secondary, fontWeight: FontWeight.bold),
                         ),
                       ],

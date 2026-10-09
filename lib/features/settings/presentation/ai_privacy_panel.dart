@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/ai/local/ai_providers.dart';
+import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/proof/traffic_proof_channel.dart';
 
 /// Real per-app traffic counters from Android TrafficStats (spike S5).
@@ -25,12 +26,14 @@ class AiPrivacyPanel extends ConsumerWidget {
     final tierAsync = ref.watch(aiTierProvider);
     final engine = ref.watch(localAiEngineProvider);
 
+    final helperOn = engine.engineId != 'null_engine';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('AI Privacy & Proof')),
+      appBar: AppBar(title: const Text('On my phone')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Hero section
+          // Hero section — states only what is true right now.
           Card(
             color: Colors.green.shade50,
             child: Padding(
@@ -40,15 +43,15 @@ class AiPrivacyPanel extends ConsumerWidget {
                   const Icon(Icons.shield, size: 48, color: Colors.green),
                   const SizedBox(height: 12),
                   Text(
-                    'Lahat ng AI ay on-device',
+                    'Nananatili sa teleponong ito',
                     style: theme.textTheme.titleLarge?.copyWith(
                       color: Colors.green.shade800,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your voice, photos, and health data never leave this phone. '
-                    'AI runs locally using the Gemma model.',
+                    'Your voice, photos, and health records are saved only '
+                    'on this phone. Nothing is uploaded.',
                     style: theme.textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -58,22 +61,28 @@ class AiPrivacyPanel extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // Model info
+          // Helper status — plain words, true facts only.
           _infoTile(
             theme,
             icon: Icons.memory,
-            label: 'Model',
-            value: engine.engineId == 'null_engine'
-                ? 'None (Basic mode)'
-                : engine.engineId,
+            label: 'Phone helper',
+            value: helperOn
+                ? 'On — works without internet'
+                : 'Off — typing still works',
           ),
           tierAsync.when(
-            data: (tier) => _infoTile(
-              theme,
-              icon: Icons.speed,
-              label: 'AI Tier',
-              value: tier.name.toUpperCase(),
-            ),
+            data: (tier) => helperOn
+                ? _infoTile(
+                    theme,
+                    icon: Icons.speed,
+                    label: 'Helper speed on this phone',
+                    value: switch (tier) {
+                      AiTier.full => 'Normal',
+                      AiTier.lite => 'Slower (smaller phone)',
+                      AiTier.basic => 'Not running',
+                    },
+                  )
+                : const SizedBox.shrink(),
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
@@ -108,14 +117,14 @@ class AiPrivacyPanel extends ConsumerWidget {
           _infoTile(
             theme,
             icon: Icons.lock,
-            label: 'Data storage',
-            value: 'Local SQLite only — no cloud sync',
+            label: 'Where records live',
+            value: 'Only on this phone — no account, no cloud',
           ),
           _infoTile(
             theme,
             icon: Icons.verified_user,
-            label: 'Safety',
-            value: 'AI proposes → validators check → you confirm',
+            label: 'Who decides',
+            value: 'The phone suggests. You always confirm before saving.',
           ),
 
           const SizedBox(height: 24),
@@ -129,10 +138,10 @@ class AiPrivacyPanel extends ConsumerWidget {
                   Text('How it works', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   _stepRow('1', 'You speak or type a care update'),
-                  _stepRow('2', 'AI on this phone extracts records'),
-                  _stepRow('3', 'Validators check all values'),
+                  _stepRow('2', 'The phone turns it into cards'),
+                  _stepRow('3', 'Every number is checked'),
                   _stepRow('4', 'You review and confirm'),
-                  _stepRow('5', 'Records are saved locally'),
+                  _stepRow('5', 'It is saved on this phone'),
                 ],
               ),
             ),

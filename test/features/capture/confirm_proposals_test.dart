@@ -96,7 +96,7 @@ void main() {
 
       final occs = await medRepo.getOccurrencesForDate('ms-1', DateTime.now());
       expect(occs.single.status, MedicationStatus.taken);
-      expect(occs.single.statusNote, contains('AI-assisted'));
+      expect(occs.single.statusNote, contains('Phone-assisted'));
     });
 
     test('confirming twice creates no duplicates', () async {

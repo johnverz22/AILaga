@@ -83,7 +83,7 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                         Icon(Icons.check_circle_outline,
                             size: 64, color: theme.colorScheme.primary),
                         const SizedBox(height: 16),
-                        Text('Walang records na na-detect.',
+                        Text('Walang narinig na tala.',
                             style: theme.textTheme.bodyLarge),
                       ],
                     ),

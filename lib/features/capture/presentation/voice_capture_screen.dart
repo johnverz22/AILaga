@@ -51,7 +51,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mag-capture'),
+        title: const Text('Magtala'),
         actions: [
           // SOS button in every app bar per spec
           Padding(
@@ -91,7 +91,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Basic mode — type your notes below. Download the AI model in Settings for voice capture.',
+                            'I-type muna ang tala sa baba. I-on ang Phone helper sa Settings para makapagsalita.',
                             style: TextStyle(fontSize: 13),
                           ),
                         ),
@@ -199,7 +199,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${_proposals.length} records detected',
+          '${_proposals.length} tala ang narinig',
           style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
@@ -265,7 +265,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Mic unavailable: $e')),
+            SnackBar(content: Text('Hindi magamit ang mic: $e')),
           );
         }
         return;

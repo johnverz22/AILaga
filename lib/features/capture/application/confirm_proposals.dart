@@ -115,7 +115,7 @@ class ConfirmProposalsUseCase {
         await medicationRepo.updateOccurrenceStatus(
           pendingOcc.id,
           MedicationStatus.taken,
-          note: 'AI-assisted: ${proposal.sourceQuote ?? "voice capture"}',
+          note: 'Phone-assisted: ${proposal.sourceQuote ?? "voice capture"}',
         );
         return true;
 
@@ -139,7 +139,7 @@ class ConfirmProposalsUseCase {
         await medicationRepo.updateOccurrenceStatus(
           pendingOcc.id,
           MedicationStatus.skipped,
-          note: payload['reasonText'] as String? ?? 'AI-assisted skip',
+          note: payload['reasonText'] as String? ?? 'Phone-assisted skip',
         );
         return true;
 

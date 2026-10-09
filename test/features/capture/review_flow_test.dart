@@ -150,7 +150,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Walang records'), findsOneWidget);
+    expect(find.textContaining('Walang narinig'), findsOneWidget);
     expect(find.textContaining('Kumpirmahin lahat'), findsNothing);
   });
 }
