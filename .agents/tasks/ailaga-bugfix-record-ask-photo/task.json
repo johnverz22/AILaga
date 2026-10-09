@@ -1,0 +1,7 @@
+{
+  "task_id": "task-ailaga-bugfix-record-ask-photo",
+  "task_description": "Fix three broken core functionalities in the AILaga Flutter app: (1) Record — microphone permission is never requested, only checked; (2) Ask — FlutterGemma.initialize() is called lazily in the engine instead of in main(), plus a model re-install loop; (3) Photo Analyze — Process button not disabled in Basic mode causing confusing errors, camera permission denial is silent. No UI layout changes. All excluded UI bugs (Part B) must remain untouched.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

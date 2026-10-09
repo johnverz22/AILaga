@@ -444,15 +444,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   /// Centers [child] when it fits; scrolls instead of overflowing when
   /// large text or a short screen squeezes the available height.
   Widget _scrollableCenter(Widget child) {
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-              minHeight: constraints.maxHeight - 48), // minus padding
-          child: IntrinsicHeight(child: child),
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: child,
+          ),
         ),
-      ),
+      ],
     );
   }
 
