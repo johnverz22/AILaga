@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../services/ai/local/capture/voice_capture_service.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/proposals/proposal_models.dart';
@@ -21,7 +26,11 @@ class VoiceCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
+  static const _recordLimit = Duration(seconds: 30);
+
   final _textController = TextEditingController();
+  final _voiceService = VoiceCaptureService();
+  Timer? _recordTimer;
   bool _isRecording = false;
   bool _isProcessing = false;
   String? _transcript;
@@ -29,6 +38,8 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
   @override
   void dispose() {
+    _recordTimer?.cancel();
+    _voiceService.dispose();
     _textController.dispose();
     super.dispose();
   }
@@ -70,7 +81,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.15),
+                      color: Colors.amber.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.amber.shade300),
                     ),
@@ -108,6 +119,14 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
             // Action buttons
             if (!_isProcessing && _proposals.isEmpty)
               _buildActionButtons(theme),
+
+            // Snap (photo capture) entry — icon + label, never icon-only
+            if (!_isProcessing && _proposals.isEmpty)
+              TextButton.icon(
+                onPressed: () => context.push('/capture/snap'),
+                icon: const Icon(Icons.photo_camera),
+                label: const Text('Kunan ng litrato (reseta, label, monitor)'),
+              ),
           ],
         ),
       ),
@@ -207,12 +226,12 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
   Widget _buildActionButtons(ThemeData theme) {
     return Row(
       children: [
-        // Record button (placeholder — actual recording needs platform channel)
+        // Record button — disabled in Basic mode (text is the input there)
         Expanded(
           child: SizedBox(
             height: 56,
             child: OutlinedButton.icon(
-              onPressed: _toggleRecording,
+              onPressed: _isBasicTier ? null : _toggleRecording,
               icon: Icon(_isRecording ? Icons.stop : Icons.mic),
               label: Text(_isRecording ? 'Itigil' : 'I-record'),
             ),
@@ -236,12 +255,100 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
     );
   }
 
-  void _toggleRecording() {
-    setState(() {
-      _isRecording = !_isRecording;
-    });
-    // TODO: Implement actual audio recording via platform channel
-    // For now, users can type text as the fallback path
+  bool get _isBasicTier =>
+      ref.read(aiTierProvider).valueOrNull == AiTier.basic;
+
+  Future<void> _toggleRecording() async {
+    if (!_isRecording) {
+      try {
+        await _voiceService.start();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Mic unavailable: $e')),
+          );
+        }
+        return;
+      }
+      setState(() => _isRecording = true);
+      // Hard stop at 30 s — auto-submits, per spec.
+      _recordTimer = Timer(_recordLimit, _stopRecordingAndProcess);
+    } else {
+      await _stopRecordingAndProcess();
+    }
+  }
+
+  Future<void> _stopRecordingAndProcess() async {
+    if (!_isRecording) return;
+    _recordTimer?.cancel();
+    final clip = await _voiceService.stop();
+    setState(() => _isRecording = false);
+    if (clip == null) return;
+    await _processAudio(clip);
+  }
+
+  /// Audio path: WAV → engine (ASR + extraction) → review.
+  /// Temp audio file is deleted right after processing.
+  Future<void> _processAudio(AudioClip clip) async {
+    setState(() => _isProcessing = true);
+    try {
+      final recipient = ref.read(primaryCareRecipientProvider).valueOrNull;
+      if (recipient == null) return;
+
+      final engine = ref.read(localAiEngineProvider);
+      final medRepo = ref.read(medicationRepositoryProvider);
+      final schedules = await medRepo.getActiveSchedules(recipient.id);
+      final ctx = ExtractionContext(
+        activeMeds: schedules.map((s) => s.medicationName).toList(),
+        now: DateTime.now(),
+        timezone: DateTime.now().timeZoneName,
+      );
+
+      final transcriptBuf = StringBuffer();
+      final proposals = <ProposedRecord>[];
+      String? failure;
+      final sw = Stopwatch()..start();
+      await for (final event in engine.extractFromAudio(clip, ctx)) {
+        switch (event) {
+          case TranscriptUpdated(:final text):
+            transcriptBuf.write(text);
+          case ProposalEmitted(:final record):
+            proposals.add(record);
+          case ExtractionFailed(:final reason):
+            failure = reason;
+          case ExtractionComplete():
+            break;
+        }
+      }
+      sw.stop();
+
+      // Audio is discarded after extraction unless the user chose to keep it.
+      if (clip is WavAudioClip) {
+        try {
+          await File(clip.path).delete();
+        } catch (_) {}
+      }
+
+      final transcript = transcriptBuf.toString().trim();
+      if (transcript.isEmpty && proposals.isEmpty) {
+        throw StateError(failure ?? 'Walang narinig — subukan ulit o mag-type.');
+      }
+
+      await _finishExtraction(
+        recipientId: recipient.id,
+        modality: 'voice',
+        transcript: transcript,
+        proposals: proposals,
+        latencyMs: sw.elapsedMilliseconds,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 
   Future<void> _processInput() async {
@@ -280,71 +387,28 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
           now: DateTime.now(),
           timezone: DateTime.now().timeZoneName,
         );
-        // For now, use text extraction; audio will come from C7
-        final events = engine.extractFromText(text, ctx);
-        // TODO: Convert ExtractionEvents to ProposedRecords
-        // For MVP, fall back to basic extractor
-        final extractor = BasicTextExtractor(activeMeds: activeMedNames);
-        proposals = extractor.extract(text);
+        // Consume the engine's text extraction stream into proposals.
+        proposals = [];
+        await for (final event in engine.extractFromText(text, ctx)) {
+          if (event is ProposalEmitted) {
+            proposals.add(event.record);
+          }
+        }
+        // If the engine produced nothing usable, fall back to deterministic.
+        if (proposals.isEmpty) {
+          proposals = BasicTextExtractor(activeMeds: activeMedNames).extract(text);
+        }
       }
 
       sw.stop();
 
-      // Validate all proposals
-      final validator = ProposalValidator(
-        activeMeds: activeMedNames,
-        now: DateTime.now(),
-        transcript: text,
-      );
-      proposals = proposals
-          .map((p) => validator.validate(p))
-          .whereType<ProposedRecord>()
-          .toList();
-
-      // Store capture + proposals
-      final captureRepo = ref.read(aiCaptureRepositoryProvider);
-      final captureId = await captureRepo.createCapture(
-        careRecipientId: recipient.id,
+      await _finishExtraction(
+        recipientId: recipient.id,
         modality: 'text',
-        originalText: text,
-        engineId: engine.engineId,
-        modelId: 'basic',
+        transcript: text,
+        proposals: proposals,
         latencyMs: sw.elapsedMilliseconds,
       );
-
-      for (final proposal in proposals) {
-        await captureRepo.createProposal(
-          captureId: captureId,
-          record: proposal,
-        );
-      }
-
-      setState(() {
-        _proposals = proposals;
-        _isProcessing = false;
-      });
-
-      // Navigate to Review Tray
-      if (mounted && proposals.isNotEmpty) {
-        final result = await Navigator.of(context).push<int>(
-          MaterialPageRoute(
-            builder: (_) => ReviewTrayScreen(
-              captureId: captureId,
-              careRecipientId: recipient.id,
-              heardText: text,
-              proposals: proposals,
-            ),
-          ),
-        );
-
-        if (result != null && result > 0 && mounted) {
-          _textController.clear();
-          setState(() {
-            _proposals = [];
-            _transcript = null;
-          });
-        }
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -353,6 +417,76 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  /// Shared tail of both capture paths: validate → store → review tray.
+  Future<void> _finishExtraction({
+    required String recipientId,
+    required String modality,
+    required String transcript,
+    required List<ProposedRecord> proposals,
+    required int latencyMs,
+  }) async {
+    final medRepo = ref.read(medicationRepositoryProvider);
+    final schedules = await medRepo.getActiveSchedules(recipientId);
+    final activeMedNames = schedules.map((s) => s.medicationName).toList();
+
+    final validator = ProposalValidator(
+      activeMeds: activeMedNames,
+      now: DateTime.now(),
+      transcript: transcript,
+    );
+    final validated = proposals
+        .map((p) => validator.validate(p))
+        .whereType<ProposedRecord>()
+        .toList();
+
+    // Store capture + proposals
+    final engine = ref.read(localAiEngineProvider);
+    final captureRepo = ref.read(aiCaptureRepositoryProvider);
+    final captureId = await captureRepo.createCapture(
+      careRecipientId: recipientId,
+      modality: modality,
+      originalText: transcript,
+      engineId: engine.engineId,
+      modelId: engine.engineId,
+      latencyMs: latencyMs,
+    );
+
+    for (final proposal in validated) {
+      await captureRepo.createProposal(
+        captureId: captureId,
+        record: proposal,
+      );
+    }
+
+    setState(() {
+      _proposals = validated;
+      _transcript = transcript;
+      _isProcessing = false;
+    });
+
+    // Navigate to Review Tray
+    if (mounted && validated.isNotEmpty) {
+      final result = await Navigator.of(context).push<int>(
+        MaterialPageRoute(
+          builder: (_) => ReviewTrayScreen(
+            captureId: captureId,
+            careRecipientId: recipientId,
+            heardText: transcript,
+            proposals: validated,
+          ),
+        ),
+      );
+
+      if (result != null && result > 0 && mounted) {
+        _textController.clear();
+        setState(() {
+          _proposals = [];
+          _transcript = null;
+        });
+      }
     }
   }
 

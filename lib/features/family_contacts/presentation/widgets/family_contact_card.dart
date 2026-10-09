@@ -32,8 +32,8 @@ class FamilyContactCard extends StatelessWidget {
             CircleAvatar(
               radius: 24,
               backgroundColor: contact.isEmergencyContact
-                  ? colorScheme.error.withOpacity(0.12)
-                  : colorScheme.primary.withOpacity(0.10),
+                  ? colorScheme.error.withValues(alpha: 0.12)
+                  : colorScheme.primary.withValues(alpha: 0.10),
               child: Text(
                 _initials(contact.displayName),
                 style: theme.textTheme.titleMedium!.copyWith(
@@ -70,7 +70,7 @@ class FamilyContactCard extends StatelessWidget {
                     Text(
                       contact.relationship!,
                       style: theme.textTheme.bodySmall!.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.6),
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   const SizedBox(height: 2),
@@ -115,7 +115,7 @@ class FamilyContactCard extends StatelessWidget {
                       _iconBtn(
                         context,
                         icon: Icons.edit_outlined,
-                        color: colorScheme.onSurface.withOpacity(0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                         tooltip: 'Edit',
                         onPressed: onEdit!,
                       ),
@@ -123,7 +123,7 @@ class FamilyContactCard extends StatelessWidget {
                       _iconBtn(
                         context,
                         icon: Icons.delete_outline,
-                        color: colorScheme.error.withOpacity(0.7),
+                        color: colorScheme.error.withValues(alpha: 0.7),
                         tooltip: 'Delete',
                         onPressed: onDelete!,
                       ),
@@ -142,7 +142,7 @@ class FamilyContactCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: colorScheme.error.withOpacity(0.12),
+        color: colorScheme.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

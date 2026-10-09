@@ -22,6 +22,7 @@ class Narrator {
         facts: facts.facts.map((f) => '[r:${f.id}] ${f.text}').toList(),
         audience: audience,
         language: language,
+        prompt: prompt,
       ));
 
       final result = verifier.verify(rawOutput, facts);

@@ -1,4 +1,4 @@
-import '../../services/ai/care_summary_models.dart';
+import '../../care_summary_models.dart';
 
 /// A single fact with a unique ID and provenance.
 class Fact {

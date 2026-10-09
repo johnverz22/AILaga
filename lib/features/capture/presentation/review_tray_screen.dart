@@ -55,14 +55,14 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Narinig:',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 4),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -67,6 +68,20 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('AI summaries are optional. Template-based summaries are always available.'),
             value: false,
             onChanged: (val) {},
+          ),
+          ListTile(
+            leading: const Icon(Icons.psychology_outlined),
+            title: const Text('Phone helper'),
+            subtitle: const Text('On-device helper: download, status, delete'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/ai-setup'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.shield_outlined),
+            title: const Text('On my phone'),
+            subtitle: const Text('What stays on this device'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/ai-privacy'),
           ),
 
           const Divider(),

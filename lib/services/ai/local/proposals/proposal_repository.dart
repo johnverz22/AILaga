@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/database/app_database.dart';
-import '../local/proposals/proposal_models.dart';
+import '../../../../core/database/app_database.dart';
+import 'proposal_models.dart';
 
 /// Entities for the AI capture/proposal staging area.
 class AiCaptureEntity {
@@ -111,9 +112,9 @@ class AiCaptureRepository {
   }
 
   Future<void> updateProposalStatus(String proposalId, String status) async {
-    (await (_db.update(_db.aiProposals)
-      ..where((t) => t.id.equals(proposalId))))
-      .write(AiProposalsCompanion(status: Value(status)));
+    await (_db.update(_db.aiProposals)
+          ..where((t) => t.id.equals(proposalId)))
+        .write(AiProposalsCompanion(status: Value(status)));
   }
 
   Future<void> confirmProposal(String proposalId) =>

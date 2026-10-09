@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import '../domain/report_entity.dart';
 import '../domain/report_service.dart';

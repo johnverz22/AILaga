@@ -60,7 +60,7 @@ class CareRecipientScreen extends ConsumerWidget {
                     Icon(
                       Icons.person_add_alt_1_outlined,
                       size: 72,
-                      color: theme.colorScheme.primary.withOpacity(0.5),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 24),
                     Text(

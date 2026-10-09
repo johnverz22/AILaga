@@ -34,7 +34,7 @@ class FamilyContactsScreen extends ConsumerWidget {
                     Icon(
                       Icons.person_search_outlined,
                       size: 64,
-                      color: theme.colorScheme.primary.withOpacity(0.4),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.4),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -100,7 +100,7 @@ class FamilyContactsScreen extends ConsumerWidget {
               Icon(
                 Icons.people_outline,
                 size: 64,
-                color: theme.colorScheme.primary.withOpacity(0.4),
+                color: theme.colorScheme.primary.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 20),
               Text(
@@ -121,7 +121,7 @@ class FamilyContactsScreen extends ConsumerWidget {
     return ReorderableListView.builder(
       padding: const EdgeInsets.only(bottom: 96, top: 8),
       itemCount: contacts.length,
-      onReorder: (oldIndex, newIndex) =>
+      onReorderItem: (oldIndex, newIndex) =>
           _reorder(ref, contacts, oldIndex, newIndex),
       itemBuilder: (ctx, i) {
         final contact = contacts[i];
@@ -144,7 +144,6 @@ class FamilyContactsScreen extends ConsumerWidget {
     int oldIndex,
     int newIndex,
   ) async {
-    if (newIndex > oldIndex) newIndex--;
     final ids = List<String>.from(contacts.map((c) => c.id));
     final moved = ids.removeAt(oldIndex);
     ids.insert(newIndex, moved);

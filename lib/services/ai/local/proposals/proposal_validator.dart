@@ -1,5 +1,5 @@
 import 'proposal_models.dart';
-import '../../../core/utilities/validators.dart';
+import '../../../../core/utilities/validators.dart';
 import 'med_matcher.dart';
 import 'time_resolver.dart';
 

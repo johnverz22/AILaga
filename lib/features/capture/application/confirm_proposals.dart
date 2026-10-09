@@ -1,16 +1,15 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
-import '../../../../features/medications/domain/medication_repository.dart';
-import '../../../../features/medications/domain/medication_status.dart';
-import '../../../../features/measurements/domain/measurement_repository.dart';
-import '../../../../features/measurements/domain/measurement_entity.dart';
-import '../../../../features/measurements/domain/measurement_type.dart';
-import '../../../../features/care_notes/domain/care_note_repository.dart';
-import '../../../../features/care_notes/domain/care_note_entity.dart';
-import '../proposals/proposal_repository.dart';
-import '../proposals/proposal_models.dart';
-import '../proposals/time_resolver.dart';
+import '../../medications/domain/medication_repository.dart';
+import '../../medications/domain/medication_status.dart';
+import '../../measurements/domain/measurement_repository.dart';
+import '../../measurements/domain/measurement_entity.dart';
+import '../../measurements/domain/measurement_type.dart';
+import '../../care_notes/domain/care_note_repository.dart';
+import '../../care_notes/domain/care_note_entity.dart';
+import '../../../services/ai/local/proposals/proposal_repository.dart';
+import '../../../services/ai/local/proposals/time_resolver.dart';
 
 /// Confirms AI proposals by writing real records through A's repositories.
 /// One transaction per capture; idempotent — confirming twice creates no duplicates.

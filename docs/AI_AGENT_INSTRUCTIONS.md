@@ -71,6 +71,29 @@ flutter test
 
 ---
 
+## For Developer C's Agent (Local AI & Capture)
+
+When starting work, read these files first:
+1. `docs/LOCAL_AI_UX_SPEC.md` — design and safety rules (§6 = technical design)
+2. `docs/DEVELOPER_C_AI_TASKS.md` — your task list and spike protocol
+3. `docs/UI_PROMPT.md` — Elder/Helper mode design system and microcopy
+
+### Key rules for your agent:
+- **AI never writes to repositories**: AI emits `ProposedRecord`s → `ProposalValidator` → human confirm via `ConfirmProposalsUseCase` → provenance (`source=ai_assisted`).
+- **Basic mode is a feature**: `NullEngine` + `BasicTextExtractor` must keep the whole app working when no model is installed or the engine fails.
+- **No silent corrections**: out-of-range values get flag `check`, not a fix. `source_quote` not in transcript → drop.
+- **SOS is untouchable**: never route emergency flows through AI.
+- **Only real numbers**: latency/size/traffic figures in UI must come from measurements recorded in `docs/SPIKE_RESULTS.md`; never fabricate.
+- **Stay in your lane**: C owns `lib/services/ai/**`, `lib/features/{capture,ask,ai_setup}/`. Shared: `router.dart` (add routes only), `pubspec.yaml`.
+
+### Run after each feature:
+```bash
+flutter analyze
+flutter test
+```
+
+---
+
 ## Shared Conventions
 
 ### Riverpod provider naming:

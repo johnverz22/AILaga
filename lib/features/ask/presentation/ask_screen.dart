@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
+import '../data/ask_providers.dart';
 
 /// Ask the Record screen: scoped, tool-grounded queries.
 /// Not a chatbot — max 3 tool rounds, 20s timeout, same verifier.
@@ -65,10 +66,9 @@ class _AskScreenState extends ConsumerState<AskScreen> {
                 return Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
-                  color: Colors.amber.withOpacity(0.1),
+                  color: Colors.amber.withValues(alpha: 0.1),
                   child: const Text(
-                    'Ask is available when the AI model is downloaded. '
-                    'Go to Settings > AI to set up.',
+                    'Phone helper is off. Simple answers only.',
                     style: TextStyle(fontSize: 13),
                   ),
                 );
@@ -167,7 +167,7 @@ class _AskScreenState extends ConsumerState<AskScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.question_answer_outlined,
-              size: 64, color: theme.colorScheme.primary.withOpacity(0.5)),
+              size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             'Magtanong tungkol sa records ni Lola',
@@ -177,7 +177,7 @@ class _AskScreenState extends ConsumerState<AskScreen> {
           Text(
             'Hindi ito chatbot — nagbabasa lang sa records.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -244,27 +244,16 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     _scrollToBottom();
 
     try {
-      final tier = await ref.read(aiTierProvider.future);
-
-      if (tier == AiTier.basic) {
-        setState(() {
-          _messages.add(_ChatMessage(
-            text: 'Hindi pa available ang Ask feature. '
-                'I-download muna ang AI model sa Settings > AI.',
-            isUser: false,
-          ));
-        });
-      } else {
-        // TODO: Implement real Ask agent with tool rounds
-        // For now, show placeholder
-        setState(() {
-          _messages.add(_ChatMessage(
-            text: 'Pasensya, ang Ask feature ay under development pa. '
-                'Tingnan mo ang records sa Ngayon tab.',
-            isUser: false,
-          ));
-        });
-      }
+      final agent = await ref.read(askAgentProvider.future);
+      final result = await agent.ask(query);
+      if (!mounted) return;
+      setState(() {
+        _messages.add(_ChatMessage(
+          text: result.text,
+          isUser: false,
+          sources: result.sourceIds.isEmpty ? null : result.sourceIds,
+        ));
+      });
     } catch (e) {
       setState(() {
         _messages.add(_ChatMessage(

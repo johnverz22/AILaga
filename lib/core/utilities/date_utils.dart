@@ -11,7 +11,6 @@ class AppDateUtils {
   static final DateFormat _displayDate = DateFormat('MMM d, yyyy');
   static final DateFormat _displayDateTime = DateFormat('MMM d, yyyy h:mm a');
   static final DateFormat _displayTime = DateFormat('h:mm a');
-  static final DateFormat _iso8601 = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
   static final DateFormat _shortDate = DateFormat('MM/dd/yyyy');
 
   /// Returns e.g. "Oct 9, 2026"
@@ -56,7 +55,9 @@ class AppDateUtils {
     if (absDiff.inSeconds < 60) {
       return diff.isNegative ? 'in a moment' : 'just now';
     } else if (absDiff.inMinutes < 60) {
-      final m = absDiff.inMinutes;
+      // Round to nearest minute so a "10 minutes from now" value doesn't
+      // truncate to 9 due to elapsed milliseconds between the two clocks.
+      final m = (absDiff.inSeconds / 60).round();
       return diff.isNegative ? 'in $m ${_plural(m, 'minute')}' : '$m ${_plural(m, 'minute')} ago';
     } else if (absDiff.inHours < 24) {
       final h = absDiff.inHours;

@@ -118,7 +118,6 @@ class _MedicationItem extends ConsumerWidget {
         statusIcon = Icons.help_outline;
         break;
       case MedicationStatus.pending:
-      default:
         statusColor = isOverdue ? Colors.red : Colors.grey;
         statusIcon = isOverdue ? Icons.error_outline : Icons.radio_button_unchecked;
         break;

@@ -1,9 +1,11 @@
 # AI Assistant Rules
 
 You are assisting with the AILaga Flutter Project.
+Also see `AGENTS.md` (canonical rules: commands, ownership, safety).
 
 Read `docs/AI_AGENT_INSTRUCTIONS.md` before starting work.
 Refer to `docs/ARCHITECTURE.md` and `docs/INTEGRATION_GUIDE.md` for technical context.
+Developer tracks: `docs/DEVELOPER_A_TASKS.md` (foundation), `docs/DEVELOPER_B_TASKS.md` (UI), `docs/DEVELOPER_C_AI_TASKS.md` (local AI layer — read `docs/LOCAL_AI_UX_SPEC.md` and `docs/UI_PROMPT.md` too).
 
 When working on UI:
 - Use the predefined palette and `google_fonts` (Inter) from `lib/app/theme.dart`.

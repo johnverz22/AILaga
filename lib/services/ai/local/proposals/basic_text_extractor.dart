@@ -25,8 +25,11 @@ class BasicTextExtractor {
     RegExp tempRegex = RegExp(r'(\d{2}(?:\.\d)?)\s*(c|f|celsius|fahrenheit)?\s*(?:temp|lagnat)');
     for (var match in tempRegex.allMatches(lowerText)) {
       String unit = match.group(2) ?? 'c';
-      if (unit.startsWith('f')) unit = 'f';
-      else unit = 'c';
+      if (unit.startsWith('f')) {
+        unit = 'f';
+      } else {
+        unit = 'c';
+      }
       records.add(ProposedMeasurement(
         type: 'temperature',
         value1: double.parse(match.group(1)!),
@@ -39,8 +42,11 @@ class BasicTextExtractor {
     RegExp tempRegex2 = RegExp(r'(?:temp|lagnat)\s*(\d{2}(?:\.\d)?)\s*(c|f|celsius|fahrenheit)?');
     for (var match in tempRegex2.allMatches(lowerText)) {
       String unit = match.group(2) ?? 'c';
-      if (unit.startsWith('f')) unit = 'f';
-      else unit = 'c';
+      if (unit.startsWith('f')) {
+        unit = 'f';
+      } else {
+        unit = 'c';
+      }
       records.add(ProposedMeasurement(
         type: 'temperature',
         value1: double.parse(match.group(1)!),

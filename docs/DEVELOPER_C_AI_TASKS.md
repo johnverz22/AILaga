@@ -8,6 +8,8 @@ Legend: ☁ = can be built and tested in a Linux cloud VM · 📱 = needs a real
 **Core rule:** AI proposes → deterministic code validates → caregiver confirms → provenance stored.
 AI never writes to repositories. SOS never touches AI. If the model is missing or fails, the app must behave like the current deterministic build.
 
+> **Status (latest update):** all ☁ code paths are implemented and `flutter analyze` / `flutter test` are clean (114 tests). All 📱 items are code-complete but **unverified on device** — spikes S1–S6 have not been run and `docs/SPIKE_RESULTS.md` is empty. Do not demo any number until it is recorded there.
+
 ---
 
 ## 0. Amendments to existing docs (do these first, 15 min)
@@ -84,11 +86,11 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 #### C5 Review tray UI ☁
 **Files:** `lib/features/capture/presentation/review_tray_screen.dart`, `widgets/proposal_card.dart`
 - [x] Heard-text header, card per proposal, **Sure/Check** badge, quote line, Edit/✕, "Kumpirmahin lahat"
-- [x] **Edit** opens A's existing form pre-filled (route + extra args; no new form code)
-- [x] Rejected values show reason and can't be confirmed until edited
+- [ ] **Edit** opens A's existing form pre-filled (route + extra args; no new form code) — currently a placeholder snackbar
+- [ ] Rejected values show reason and can't be confirmed until edited — badge shows, but confirm blocking is not enforced
 - [ ] Pending-proposals strip pinned at top of Ngayon (B)
 - [x] Semantics labels, ≥ 48 dp targets, icon + text (not color-only)
-**Accept:** widget tests with `ScriptedEngine` fixtures; golden screenshots for 3 states.
+**Accept:** widget tests with `ScriptedEngine` fixtures — `test/features/capture/review_flow_test.dart` covers confirm/discard on a real in-memory DB; golden screenshots not done.
 
 ---
 
@@ -96,28 +98,28 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 
 #### C6 Model manager + device probe 📱/☁
 **Files:** `model/device_probe.dart`, `model/model_manager.dart`, `lib/features/ai_setup/…`
-- [ ] Probe RAM/ABI/SDK → `AiTier` (thresholds come from Spike S4, not guesses)
-- [ ] Resumable download, checksum, free-space check, delete, status stream
-- [ ] Onboarding step "AI ni Lola" (skippable) + Settings > AI
-- [ ] Show the real file size from the server/file, not a hardcoded number
-**Accept:** skip → Basic mode works; kill app mid-download → resumes; delete → graceful fallback.
+- [x] Probe RAM/ABI/SDK → `AiTier` via Kotlin `device` channel — **thresholds are placeholders pending S4** (documented in code)
+- [x] Resumable download, optional SHA-256 checksum, free-space check, delete, status stream
+- [x] Settings → "Phone helper" (`/ai-setup`) — onboarding step not added (onboarding is B's flow; revisit)
+- [x] Show the real file size from the server/file, not a hardcoded number (HEAD request → `sizeBytes`)
+**Accept:** skip → Basic mode works (NullEngine stays active); mid-download resume + delete fallback written, 📱 untested.
 
 #### C7 Gemma engine 📱
 **File:** `engines/gemma_litert_engine.dart`
-- [ ] Wrap `flutter_gemma`; pin plugin version; check `minSdk` (plugin needs 30 for LiteRT per its docs)
-- [ ] Lazy `ensureLoaded()`, idle unload (60 s), one inference at a time, catch OOM → mark session Basic
-- [ ] Implement `extractFromAudio` (Path A), `extractFromText`, `narrate`
-- [ ] Parse function calls into `RawToolCall`; drop malformed; 2 retries
+- [x] Wrap `flutter_gemma` + `flutter_gemma_litertlm` (pinned 1.11.x / 1.8.x); minSdk gate via `DeviceProbe.tierFor` (SDK < 30 → basic)
+- [x] Lazy `ensureLoaded()`, serialized inferences, engine errors → `ExtractionFailed` → caller falls back to Basic
+- [x] `extractFromAudio`, `extractFromText`, `extractFromImage`, `narrate`, `ask` implemented — **📱 unverified against real model**
+- [ ] Parse function calls → drop malformed; retry policy needs device validation
 - [ ] If S1 selected Path B: `sherpa_onnx` ASR adapter feeding `extractFromText`
-**Accept:** S1–S4 results recorded; extraction yields ≥ 1 valid proposal on the 10-sentence set.
+**Accept:** S1–S4 results recorded — **not yet run.**
 
 #### C8 Voice capture UI 📱
 **Files:** `capture/voice_capture_service.dart`, `lib/features/capture/presentation/voice_capture_screen.dart`, capture sheet
-- [x] Hold-to-talk (+ toggle mode setting), 16 kHz mono WAV, **hard stop at 30 s** (ring countdown)
-- [x] Mic permission flow with explanation; denial → typed text path
-- [x] States: listening → thinking (streamed transcript) → cards animate in
-- [x] Audio deleted after extraction unless "Keep recordings" is on
-**Accept:** end-to-end on device in airplane mode.
+- [x] Tap-to-record (not hold-to-talk yet), 16 kHz mono WAV via `record`, **hard stop at 30 s** auto-submits — ring countdown UI not done
+- [x] Mic permission flow; denial/error → typed text path stays available
+- [~] States: listening → thinking → cards — transcript deltas are collected but not streamed live to the UI
+- [~] Audio deleted after extraction — implemented always-delete; "Keep recordings" setting not added
+**Accept:** end-to-end on device in airplane mode — **not yet run.**
 
 ---
 
@@ -134,8 +136,8 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 #### C10 Proof panel + ✈ badge 📱
 **Files:** `proof/traffic_proof_channel.dart`, Kotlin `MainActivity` channel, `lib/features/settings/…/ai_privacy_panel.dart`
 - [x] App-bar badge: "On-device" + airplane/offline state (connectivity read, no network calls)
-- [x] Panel: model, runtime, tier, bytes sent/received during AI session (**only if S5 passes**)
-- [x] `demo` flavor without INTERNET if S6 passes
+- [x] Panel: model, runtime, tier, real UID tx/rx byte counters via `TrafficProofChannel` (Kotlin `traffic` channel implemented; accuracy **pending S5** — panel shows "Not measurable" off-platform, never a fabricated number)
+- [ ] `demo` flavor without INTERNET if S6 passes — not added yet
 **Accept:** badge flips with airplane mode; byte counter never fabricated.
 
 ---
@@ -143,10 +145,10 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 ### Phase C4 — P1 (Hours 16–21)
 
 #### C11 Snap capture 📱
-- [ ] `snap_service.dart` camera/gallery; intents Reseta/Label · Monitor
-- [ ] `extractFromImage` → `ProposedMedSchedule` / `ProposedMeasurement`
-- [ ] Unreadable fields blank + flagged; **never invent dosing**
-- [ ] Image discarded after confirm unless "Attach" toggled
+- [x] `snap_service.dart` camera/gallery (`image_picker`); intents Reseta/Label/Monitor in `snap_capture_screen.dart` (`/capture/snap`)
+- [x] `extractFromImage` → `ProposedMedSchedule` / `ProposedMeasurement` wired to review tray — 📱 unreadable-field behavior depends on the real model
+- [~] Unreadable fields blank + flagged — enforced by `ProposalValidator` (quote grounding drops unverifiable text); model-side blanking needs S3
+- [x] Image discarded after use unless "Attach photo" toggled
 
 #### C12 Ask the record ☁ (tools) / 📱 (model)
 - [x] `ask_tools.dart` read-only wrappers
@@ -162,9 +164,9 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 ### Phase C5 — Hardening & demo (Hours 21–24)
 
 #### C14 Tests ☁
-- [ ] Full-flow widget test using `ScriptedEngine`: capture → review → confirm → brief reflects it
-- [ ] Verifier adversarial suite; MedMatcher/TimeResolver tables; confirm idempotency
-- [ ] Offline test: no engine → Basic mode → everything still works
+- [x] Full-flow widget test: review → confirm → records persisted (`review_flow_test.dart`, in-memory Drift DB); capture-screen pump with `ScriptedEngine` not yet covered
+- [x] Verifier adversarial suite (`narration_verifier_test.dart`: invented IDs, >40% dropped, advice phrasings, engine-error fallback); MedMatcher/TimeResolver/validator tables exist (~15 cases, target ≥ 40); confirm idempotency + discard + provenance (`confirm_proposals_test.dart`)
+- [x] Offline/Basic-mode tests: `ask_agent_test.dart` covers NullEngine deterministic answers, engine timeout, refusal; `basic_text_extractor_test.dart` covers model-free extraction
 
 #### C15 Demo data & rehearsal 📱
 - [ ] Extend B22 seed with the demo sentence set from S1

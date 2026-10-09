@@ -21,11 +21,12 @@ import '../features/family_contacts/presentation/family_contacts_screen.dart';
 import '../features/family_contacts/presentation/add_family_contact_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/settings/presentation/ai_privacy_panel.dart';
+import '../features/ai_setup/presentation/ai_setup_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/capture/presentation/voice_capture_screen.dart';
+import '../features/capture/presentation/snap_capture_screen.dart';
 import '../features/ask/presentation/ask_screen.dart';
-import '../features/capture/presentation/widgets/on_device_badge.dart';
 import '../features/care_recipient/data/care_recipient_providers.dart';
 
 // Shell Navigation Widget — redesigned per AILaga v2 spec §4.2
@@ -38,7 +39,6 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     // Get the current location to determine selected tab
     final location = GoRouterState.of(context).uri.path;
-    final theme = Theme.of(context);
 
     int getIndex() {
       if (location.startsWith('/brief') || location.startsWith('/handover')) return 1;
@@ -166,6 +166,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/capture',
             builder: (context, state) => const VoiceCaptureScreen(),
           ),
+          GoRoute(
+            path: '/capture/snap',
+            builder: (context, state) => const SnapCaptureScreen(),
+          ),
           // Tab 3: Tanong (Ask)
           GoRoute(
             path: '/ask',
@@ -207,6 +211,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/ai-privacy',
             builder: (context, state) => const AiPrivacyPanel(),
+          ),
+          GoRoute(
+            path: '/ai-setup',
+            builder: (context, state) => const AiSetupScreen(),
           ),
         ],
       ),

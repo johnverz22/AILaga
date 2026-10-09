@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/ai/local/proposals/proposal_models.dart';
+import '../../../../services/ai/local/proposals/proposal_models.dart';
 
 /// A card that shows one AI-proposed record for review.
 class ProposalCard extends StatelessWidget {
@@ -29,8 +28,8 @@ class ProposalCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isSure
-              ? theme.colorScheme.primary.withOpacity(0.3)
-              : theme.colorScheme.error.withOpacity(0.5),
+              ? theme.colorScheme.primary.withValues(alpha: 0.3)
+              : theme.colorScheme.error.withValues(alpha: 0.5),
           width: 1.5,
         ),
       ),
@@ -54,8 +53,8 @@ class ProposalCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: isSure
-                        ? Colors.green.withOpacity(0.15)
-                        : Colors.orange.withOpacity(0.15),
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : Colors.orange.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -83,7 +82,7 @@ class ProposalCard extends StatelessWidget {
                 '"${record.sourceQuote}"',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],

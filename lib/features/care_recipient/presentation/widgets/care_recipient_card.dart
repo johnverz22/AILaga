@@ -29,7 +29,7 @@ class CareRecipientCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: colorScheme.primary.withOpacity(0.12),
+                  backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
                   child: Text(
                     _initials(recipient.displayName),
                     style: theme.textTheme.titleLarge!.copyWith(
@@ -53,7 +53,7 @@ class CareRecipientCard extends StatelessWidget {
                           'Born ${AppDateUtils.formatDate(recipient.dateOfBirth!)} · '
                           'Age ${_age(recipient.dateOfBirth!)}',
                           style: theme.textTheme.bodySmall!.copyWith(
-                            color: colorScheme.onSurface.withOpacity(0.6),
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -125,7 +125,7 @@ class CareRecipientCard extends StatelessWidget {
               Text(
                 label,
                 style: theme.textTheme.labelLarge!.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontSize: 11,
                   letterSpacing: 0.5,
                 ),

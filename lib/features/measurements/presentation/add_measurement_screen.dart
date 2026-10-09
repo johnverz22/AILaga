@@ -276,7 +276,7 @@ class _AddMeasurementScreenState
                     Expanded(
                       flex: 2,
                       child: DropdownButtonFormField<String>(
-                        value: _unit,
+                        initialValue: _unit,
                         decoration: const InputDecoration(labelText: 'Unit'),
                         items: units
                             .map((u) => DropdownMenuItem(

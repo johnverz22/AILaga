@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(flutter)",
+      "Exec(dart)",
+      "Exec(git status)",
+      "Exec(git diff)",
+      "Exec(git log)",
+      "Exec(git add)",
+      "Exec(git commit)",
+      "Exec(ls)",
+      "Exec(mkdir)"
+    ]
+  },
+  "read_config_from": {
+    "agents_standard": true,
+    "cursor": true,
+    "windsurf": true,
+    "claude": true
+  }
+}

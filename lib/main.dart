@@ -23,9 +23,9 @@ void main() async {
     // Initialize database (reading it forces creation)
     container.read(appDatabaseProvider);
     
-    // Initialize notifications (assuming we might need an init method later)
-    final notificationService = container.read(notificationServiceProvider);
-    // await notificationService.init(); // To be implemented in the future
+    // Initialize notifications (reading the provider constructs the service;
+    // a real init hook can be added later).
+    container.read(notificationServiceProvider);
 
     runApp(
       UncontrolledProviderScope(

@@ -55,6 +55,16 @@ Developer B (UI & Summaries) depends on your repository interfaces and database 
 
 **Acceptance:** Database opens, all tables exist, foreign keys enforced.
 
+#### Task A1b: AI staging schema (requested by Developer C)
+**File:** `lib/core/database/app_database.dart` — schema v2, migration `from < 2`
+
+- [x] `ai_captures` table (id, care_recipient_id, modality, original_text, engine_id, model_id, latency_ms, created_at)
+- [x] `ai_proposals` table (id, capture_id → ai_captures, kind, payload_json, source_quote, flag, status, created_at)
+- [x] `medication_occurrences.status_source` (`manual` | `ai_assisted`)
+- [x] `measurement_logs.source_type` accepts `ai_assisted`; `care_notes.review_status` accepts `confirmed`
+
+**Acceptance:** `AppDatabase.forTesting` covers writes end-to-end in `test/features/capture/confirm_proposals_test.dart`.
+
 #### Task A2: Core Utilities
 **Files:**
 - `lib/core/utilities/date_utils.dart`

@@ -5,7 +5,7 @@ import '../../../services/ai/local/proposals/proposal_repository.dart';
 import '../../../features/medications/data/medication_providers.dart';
 import '../../../features/measurements/data/measurement_providers.dart';
 import '../../../features/care_notes/data/care_note_providers.dart';
-import 'application/confirm_proposals.dart';
+import '../application/confirm_proposals.dart';
 
 /// Provider for the AI capture repository.
 final aiCaptureRepositoryProvider = Provider<AiCaptureRepository>((ref) {

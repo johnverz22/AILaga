@@ -2,7 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/ai/local/ai_providers.dart';
-import '../../../services/ai/local/local_ai_engine.dart';
+import '../../../services/ai/local/proof/traffic_proof_channel.dart';
+
+/// Real per-app traffic counters from Android TrafficStats (spike S5).
+/// Null → channel unavailable on this platform.
+final _trafficCountersProvider =
+    FutureProvider<TrafficSnapshot?>((ref) async {
+  final rx = await TrafficProofChannel.getUidRxBytes();
+  final tx = await TrafficProofChannel.getUidTxBytes();
+  if (rx == null || tx == null) return null;
+  return TrafficSnapshot(rxBytes: rx, txBytes: tx);
+});
 
 /// AI Privacy / Proof Panel — shows model info, runtime, tier.
 /// Displays "0 bytes sent" proof when in airplane mode.
@@ -67,11 +77,33 @@ class AiPrivacyPanel extends ConsumerWidget {
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
-          _infoTile(
-            theme,
-            icon: Icons.airplanemode_active,
-            label: 'Network data sent during AI',
-            value: '0 bytes',
+          ref.watch(_trafficCountersProvider).when(
+            data: (snap) => Column(
+              children: [
+                _infoTile(
+                  theme,
+                  icon: Icons.airplanemode_active,
+                  label: 'Network data sent by this app',
+                  value: snap == null
+                      ? 'Not measurable on this device'
+                      : _bytesLabel(snap.txBytes),
+                ),
+                if (snap != null)
+                  _infoTile(
+                    theme,
+                    icon: Icons.download_done,
+                    label: 'Network data received by this app',
+                    value: _bytesLabel(snap.rxBytes),
+                  ),
+              ],
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => _infoTile(
+              theme,
+              icon: Icons.airplanemode_active,
+              label: 'Network data sent by this app',
+              value: 'Not measurable on this device',
+            ),
           ),
           _infoTile(
             theme,
@@ -117,6 +149,14 @@ class AiPrivacyPanel extends ConsumerWidget {
       title: Text(label),
       subtitle: Text(value),
     );
+  }
+
+  String _bytesLabel(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Widget _stepRow(String number, String text) {

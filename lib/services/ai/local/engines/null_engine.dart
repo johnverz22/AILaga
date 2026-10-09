@@ -15,29 +15,28 @@ class NullEngine implements LocalAiEngine {
   Future<void> unloadIfIdle(Duration idle) async {}
 
   @override
-  Stream<ExtractionEvent> extractFromAudio(AudioClip clip, ExtractionContext ctx) async* {
-    // Basic mode: No audio processing
-    yield* const Stream.empty();
+  Stream<ExtractionEvent> extractFromAudio(AudioClip clip, ExtractionContext ctx) {
+    return Stream.error(const AiUnavailable('No on-device model installed'));
   }
 
   @override
-  Stream<ExtractionEvent> extractFromText(String text, ExtractionContext ctx) async* {
-    // Bypasses extraction logic; actual text fallback goes through basic text extractor
-    yield* const Stream.empty();
+  Stream<ExtractionEvent> extractFromText(String text, ExtractionContext ctx) {
+    // Text fallback is handled by BasicTextExtractor, not the engine.
+    return Stream.error(const AiUnavailable('No on-device model installed'));
   }
 
   @override
-  Stream<ExtractionEvent> extractFromImage(ImageInput img, ImageIntent intent, ExtractionContext ctx) async* {
-    yield* const Stream.empty();
+  Stream<ExtractionEvent> extractFromImage(ImageInput img, ImageIntent intent, ExtractionContext ctx) {
+    return Stream.error(const AiUnavailable('No on-device model installed'));
   }
 
   @override
-  Future<String> narrate(NarrationRequest req) async {
-    return 'Basic mode fallback narration.';
+  Future<String> narrate(NarrationRequest req) {
+    return Future.error(const AiUnavailable('No on-device model installed'));
   }
 
   @override
-  Stream<AskEvent> ask(AskRequest req, ToolExecutor tools) async* {
-    yield* const Stream.empty();
+  Stream<AskEvent> ask(AskRequest req, ToolExecutor tools) {
+    return Stream.error(const AiUnavailable('No on-device model installed'));
   }
 }

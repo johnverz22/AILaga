@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/ai/local/ai_providers.dart';
-import '../../../services/ai/local/local_ai_engine.dart';
+import '../../../../services/ai/local/ai_providers.dart';
+import '../../../../services/ai/local/local_ai_engine.dart';
 
 /// On-device badge shown in the app bar.
 /// Shows ✈ On-device when AI is running locally.
@@ -19,8 +19,8 @@ class OnDeviceBadge extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: tier == AiTier.basic
-                ? Colors.grey.withOpacity(0.2)
-                : Colors.green.withOpacity(0.15),
+                ? Colors.grey.withValues(alpha: 0.2)
+                : Colors.green.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: tier == AiTier.basic

@@ -62,15 +62,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  void _previousPage() {
-    if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   Future<void> _createCareRecipient() async {
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -102,6 +93,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       
       _nextPage();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -141,6 +133,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await repo.create(entity);
       _nextPage();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -177,6 +170,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await repo.createSchedule(entity);
       _nextPage();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
