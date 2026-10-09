@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../local_ai_engine.dart';
+import 'ai_thresholds.dart';
 
 /// Raw device capabilities relevant to local-AI feasibility.
 class DeviceCapabilities {
@@ -26,56 +27,110 @@ class DeviceCapabilities {
   static const DeviceCapabilities unknown = DeviceCapabilities();
 }
 
-/// Probes RAM/ABI/SDK/free-space through the Kotlin device channel.
-/// Off-platform or channel failure → [DeviceCapabilities.unknown] → basic tier.
+/// Machine-readable reasons for a tier decision. The UI maps these to plain
+/// words — never shown raw to the user.
+enum TierReason {
+  unknownDevice, // probe failed or off-platform
+  sdkTooOld, // below AiThresholds.minSdkForLiteRt
+  unsupportedCpu, // no arm64-v8a ABI (e.g. x86 emulator)
+  lowStorage, // not enough free space for the model
+  lowRam, // below the Lite threshold
+  ramLite, // enough for Lite, not Full
+  ramFull, // enough for Full
+}
+
+/// The tier plus why — so Settings can explain the decision in plain words.
+class TierDecision {
+  final AiTier tier;
+  final List<TierReason> reasons;
+  const TierDecision(this.tier, this.reasons);
+}
+
+/// Signature of the raw platform probe (injectable for tests).
+typedef PlatformDeviceInfo = Future<Map<Object?, Object?>?> Function();
+
+/// Probes RAM/ABI/SDK/free-space through the Kotlin device channel and maps
+/// the result to an [AiTier].
+///
+/// Design rules (audit B):
+/// - Async + defensive: every platform call is try/caught; any failure maps
+///   to [DeviceCapabilities.unknown] → Basic. The probe can never crash the
+///   app or block SOS/Basic behavior.
+/// - Deterministic + testable: the platform call is injectable.
+/// - Explainable: [decide] returns reason codes alongside the tier.
+/// - Thresholds live in ONE file ([AiThresholds]) tied to SPIKE_RESULTS.md.
 class DeviceProbe {
   static const MethodChannel _channel =
       MethodChannel('com.ailaga.ailaga/device');
 
-  static Future<DeviceCapabilities> probe() async {
+  final PlatformDeviceInfo _platformInfo;
+
+  DeviceProbe({PlatformDeviceInfo? platformInfo})
+      : _platformInfo = platformInfo ?? _channelInfo;
+
+  static Future<Map<Object?, Object?>?> _channelInfo() =>
+      _channel.invokeMethod<Map<Object?, Object?>>('getDeviceInfo');
+
+  Future<DeviceCapabilities> capabilities() async {
     try {
-      final result =
-          await _channel.invokeMethod<Map<Object?, Object?>>('getDeviceInfo');
+      final result = await _platformInfo();
       if (result == null) return DeviceCapabilities.unknown;
       return DeviceCapabilities(
         ramMb: (result['ramMb'] as num?)?.toInt(),
         sdkInt: (result['sdkInt'] as num?)?.toInt(),
-        abis: (result['abis'] as List?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            const [],
+        abis:
+            (result['abis'] as List?)?.map((e) => e.toString()).toList() ??
+                const [],
         freeStorageBytes: (result['freeStorageBytes'] as num?)?.toInt(),
       );
-    } on PlatformException {
-      return DeviceCapabilities.unknown;
-    } on MissingPluginException {
+    } catch (_) {
+      // PlatformException, MissingPluginException (iOS/tests), bad casts —
+      // all land here. Unknown device → Basic, never a crash.
       return DeviceCapabilities.unknown;
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Tier thresholds — PLACEHOLDERS pending Spike S4 measurements.
-  // These must be re-derived from real numbers recorded in
-  // docs/SPIKE_RESULTS.md before ship; do not present as final.
-  // -------------------------------------------------------------------------
-  static const int _minSdkForLiteRt = 30; // flutter_gemma LiteRT requirement
-  static const int _fullTierMinRamMb = 6144; // ~6 GB — placeholder for S4
-  static const int _liteTierMinRamMb = 4096; // ~4 GB — placeholder for S4
-  static const int _minFreeBytesForModel = 3 * 1024 * 1024 * 1024; // ~3 GB
+  Future<TierDecision> decideTier() async => decide(await capabilities());
 
-  /// Maps capabilities to an [AiTier]. Conservative: unknown or
-  /// under-provisioned devices fall back to Basic mode, which always works.
-  static AiTier tierFor(DeviceCapabilities caps) {
+  /// Pure tier mapping — conservative: unknown or under-provisioned devices
+  /// fall back to Basic mode, which always works.
+  static TierDecision decide(DeviceCapabilities caps) {
+    final reasons = <TierReason>[];
     final ram = caps.ramMb;
     final sdk = caps.sdkInt;
-    if (ram == null || sdk == null) return AiTier.basic;
-    if (sdk < _minSdkForLiteRt) return AiTier.basic;
+
+    if (ram == null || sdk == null) {
+      return const TierDecision(AiTier.basic, [TierReason.unknownDevice]);
+    }
+    if (sdk < AiThresholds.minSdkForLiteRt) {
+      reasons.add(TierReason.sdkTooOld);
+    }
+    if (caps.abis.isNotEmpty &&
+        !caps.abis.contains(AiThresholds.requiredAbi)) {
+      reasons.add(TierReason.unsupportedCpu);
+    }
     final free = caps.freeStorageBytes;
-    if (free != null && free < _minFreeBytesForModel) return AiTier.basic;
-    if (ram >= _fullTierMinRamMb) return AiTier.full;
-    if (ram >= _liteTierMinRamMb) return AiTier.lite;
-    return AiTier.basic;
+    if (free != null && free < AiThresholds.minFreeBytesForModel) {
+      reasons.add(TierReason.lowStorage);
+    }
+    if (ram < AiThresholds.liteTierMinRamMb) {
+      reasons.add(TierReason.lowRam);
+    }
+    if (reasons.isNotEmpty) {
+      return TierDecision(AiTier.basic, reasons);
+    }
+    return ram >= AiThresholds.fullTierMinRamMb
+        ? const TierDecision(AiTier.full, [TierReason.ramFull])
+        : const TierDecision(AiTier.lite, [TierReason.ramLite]);
   }
+
+  // ---------------------------------------------------------------------
+  // Static compatibility API (existing call sites/tests)
+  // ---------------------------------------------------------------------
+
+  static Future<DeviceCapabilities> probe() => DeviceProbe().capabilities();
+
+  static AiTier tierFor(DeviceCapabilities caps) => decide(caps).tier;
 
   static Future<AiTier> probeTier() async => tierFor(await probe());
 }

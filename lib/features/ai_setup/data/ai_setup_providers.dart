@@ -21,10 +21,16 @@ const _placeholderModelUrl =
 final deviceCapabilitiesProvider = FutureProvider<DeviceCapabilities>(
     (ref) => DeviceProbe.probe());
 
-/// AI tier this device can support (placeholder thresholds — see S4).
-final deviceTierProvider = FutureProvider<AiTier>((ref) async {
+/// Tier decision with reason codes (thresholds: ai_thresholds.dart → S4).
+final tierDecisionProvider = FutureProvider<TierDecision>((ref) async {
   final caps = await ref.watch(deviceCapabilitiesProvider.future);
-  return DeviceProbe.tierFor(caps);
+  return DeviceProbe.decide(caps);
+});
+
+/// AI tier this device can support.
+final deviceTierProvider = FutureProvider<AiTier>((ref) async {
+  final decision = await ref.watch(tierDecisionProvider.future);
+  return decision.tier;
 });
 
 /// The single ModelManager instance for the configured model.

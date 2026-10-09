@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/ai/local/local_ai_engine.dart';
+import '../../../services/ai/local/model/device_probe.dart';
 import '../../../services/ai/local/model/model_manager.dart';
 import '../data/ai_setup_providers.dart';
 
@@ -13,7 +14,7 @@ class AiSetupScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(modelStatusProvider);
-    final tier = ref.watch(deviceTierProvider);
+    final tier = ref.watch(tierDecisionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Phone helper')),
@@ -32,7 +33,7 @@ class AiSetupScreen extends ConsumerWidget {
   }
 
   Widget _buildBody(BuildContext context, WidgetRef ref, ModelStatus status,
-      AsyncValue<AiTier> tier) {
+      AsyncValue<TierDecision> tier) {
     switch (status.state) {
       case ModelInstallState.downloading:
       case ModelInstallState.verifying:
@@ -60,10 +61,24 @@ class AiSetupScreen extends ConsumerWidget {
     }
   }
 
+  /// Plain-words explanation of why the helper can't run here — no jargon.
+  static String _basicReasonText(TierDecision d) {
+    if (d.reasons.contains(TierReason.lowStorage)) {
+      return 'Not enough free space on this phone. '
+          'Free some space, then try again. Typing still works.';
+    }
+    if (d.reasons.contains(TierReason.sdkTooOld) ||
+        d.reasons.contains(TierReason.unsupportedCpu) ||
+        d.reasons.contains(TierReason.lowRam)) {
+      return 'This phone is too small for the helper. Typing still works.';
+    }
+    return 'We could not check this phone. Typing still works.';
+  }
+
   Widget _introView(BuildContext context, WidgetRef ref, ModelStatus status,
-      AsyncValue<AiTier> tier) {
-    final unsupported =
-        tier.hasValue && tier.value == AiTier.basic;
+      AsyncValue<TierDecision> tier) {
+    final decision = tier.valueOrNull;
+    final unsupported = decision != null && decision.tier == AiTier.basic;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -84,8 +99,7 @@ class AiSetupScreen extends ConsumerWidget {
         if (unsupported)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text('This phone may be too small for the helper. '
-                'Typing still works.',
+            child: Text(_basicReasonText(decision),
                 textAlign: TextAlign.center, style: _body(context)),
           ),
         _primaryButton(
