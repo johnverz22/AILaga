@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +15,10 @@ class AiSetupScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // iOS has nothing to download — the helper is Apple Intelligence,
+    // built into the OS. Show its real availability instead.
+    if (Platform.isIOS) return _iosScaffold(context, ref);
+
     final status = ref.watch(modelStatusProvider);
     final tier = ref.watch(tierDecisionProvider);
 
@@ -182,6 +188,72 @@ class AiSetupScreen extends ConsumerWidget {
             context, 'Done', () => Navigator.of(context).maybePop()),
       ],
     );
+  }
+
+  /// iOS status card: helper availability comes from the OS, not a
+  /// download. Honest wording — says what to do, never blames.
+  Widget _iosScaffold(BuildContext context, WidgetRef ref) {
+    final avail = ref.watch(appleAiAvailabilityProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Phone helper')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: avail.when(
+            loading: () =>
+                const Center(child: CircularProgressIndicator()),
+            error: (_, __) => _iosBody(context, false, 'channel_error'),
+            data: (a) =>
+                _iosBody(context, a['available'] == true, '${a['reason']}'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _iosBody(BuildContext context, bool available, String reason) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Icon(
+          available ? Icons.check_circle : Icons.phonelink_lock,
+          size: 80,
+          color: available
+              ? const Color(0xFF1B7F3B)
+              : const Color(0xFF0B6B6B),
+        ),
+        const SizedBox(height: 16),
+        Text(available ? 'Ready' : 'Phone helper',
+            textAlign: TextAlign.center, style: _title(context)),
+        const SizedBox(height: 24),
+        if (available) ...[
+          _infoRow(Icons.lock_outline, 'Stays on this phone'),
+          _infoRow(Icons.flight_outlined, 'Works offline'),
+          _infoRow(Icons.mic_none, 'Hears Lola'),
+        ] else ...[
+          _infoRow(Icons.settings_outlined, _iosReasonText(reason)),
+          _infoRow(Icons.keyboard_alt_outlined,
+              'Typing still works either way'),
+        ],
+        const Spacer(),
+        _primaryButton(
+            context, 'Done', () => Navigator.of(context).maybePop()),
+      ],
+    );
+  }
+
+  static String _iosReasonText(String reason) {
+    if (reason.contains('appleIntelligenceNotEnabled')) {
+      return 'Turn on Apple Intelligence in iPhone Settings';
+    }
+    if (reason.contains('deviceNotEligible')) {
+      return 'This iPhone does not have Apple Intelligence';
+    }
+    if (reason.contains('requires_ios_26') ||
+        reason.contains('notReady')) {
+      return 'Update this iPhone to turn on the helper';
+    }
+    return 'The helper is not available on this iPhone';
   }
 
   Widget _infoRow(IconData icon, String text) => Padding(

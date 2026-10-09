@@ -1,7 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'local_ai_engine.dart';
 import 'engines/null_engine.dart';
 import 'engines/gemma_litert_engine.dart';
+import 'engines/apple_ai_engine.dart';
+import 'platform/apple_channels.dart';
 import 'model/model_manager.dart';
 import '../../../features/ai_setup/data/ai_setup_providers.dart';
 
@@ -19,6 +23,15 @@ final localAiEngineProvider = StateProvider<LocalAiEngine>((ref) {
 /// live (no stale "model installed" state). Any failure → Basic.
 final resolvedEngineProvider = FutureProvider<LocalAiEngine>((ref) async {
   try {
+    // iOS path: Apple Intelligence is built into the OS — no model file.
+    // Gate = FoundationModels availability + hardware probe; otherwise Basic.
+    if (Platform.isIOS) {
+      if (!await AppleAiChannel.isAvailable()) return NullEngine();
+      final tier = await ref.watch(deviceTierProvider.future);
+      if (tier == AiTier.basic) return NullEngine();
+      return AppleAiEngine(deviceTier: tier);
+    }
+
     final manager = ref.watch(modelManagerProvider);
     // Re-run on every install-status change (download done, deleted, …).
     final status = await ref.watch(modelStatusProvider.future);

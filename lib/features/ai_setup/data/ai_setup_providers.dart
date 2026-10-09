@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/ai/local/model/device_probe.dart';
 import '../../../services/ai/local/model/model_manager.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
+import '../../../services/ai/local/platform/apple_channels.dart';
 
 /// The model this build downloads. URL is a placeholder until the team picks
 /// a host; sha256 comes from the release process (S6 spike notes).
@@ -43,6 +44,11 @@ final modelManagerProvider = Provider<ModelManager>((ref) {
   ref.onDispose(manager.dispose);
   return manager;
 });
+
+/// iOS-only: whether Apple Intelligence (FoundationModels) is usable on
+/// this device right now. Android ignores this provider.
+final appleAiAvailabilityProvider = FutureProvider<Map<String, Object?>>(
+    (ref) => AppleAiChannel.availability());
 
 /// Live install status (notInstalled/downloading/verifying/installed/error).
 final modelStatusProvider = StreamProvider<ModelStatus>((ref) async* {

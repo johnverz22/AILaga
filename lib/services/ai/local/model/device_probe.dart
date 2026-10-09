@@ -5,23 +5,28 @@ import 'ai_thresholds.dart';
 
 /// Raw device capabilities relevant to local-AI feasibility.
 class DeviceCapabilities {
-  /// Total RAM in MiB (Android ActivityManager.MemoryInfo.totalMem).
+  /// Total RAM in MiB (Android ActivityManager.MemoryInfo.totalMem /
+  /// iOS ProcessInfo.physicalMemory).
   final int? ramMb;
 
-  /// Android SDK int (e.g. 34). Null off-platform.
+  /// Android SDK int (e.g. 34); iOS major version (e.g. 26). Null off-platform.
   final int? sdkInt;
 
-  /// Supported ABIs (e.g. arm64-v8a).
+  /// Supported ABIs (e.g. arm64-v8a). iOS reports ['arm64'].
   final List<String> abis;
 
   /// Free bytes on the app's storage volume.
   final int? freeStorageBytes;
+
+  /// 'android' | 'ios' | null (unreported → treated as Android legacy).
+  final String? platform;
 
   const DeviceCapabilities({
     this.ramMb,
     this.sdkInt,
     this.abis = const [],
     this.freeStorageBytes,
+    this.platform,
   });
 
   static const DeviceCapabilities unknown = DeviceCapabilities();
@@ -82,6 +87,7 @@ class DeviceProbe {
             (result['abis'] as List?)?.map((e) => e.toString()).toList() ??
                 const [],
         freeStorageBytes: (result['freeStorageBytes'] as num?)?.toInt(),
+        platform: result['platform']?.toString(),
       );
     } catch (_) {
       // PlatformException, MissingPluginException (iOS/tests), bad casts —
@@ -102,12 +108,18 @@ class DeviceProbe {
     if (ram == null || sdk == null) {
       return const TierDecision(AiTier.basic, [TierReason.unknownDevice]);
     }
-    if (sdk < AiThresholds.minSdkForLiteRt) {
-      reasons.add(TierReason.sdkTooOld);
-    }
-    if (caps.abis.isNotEmpty &&
-        !caps.abis.contains(AiThresholds.requiredAbi)) {
-      reasons.add(TierReason.unsupportedCpu);
+    // Android-only gates: sdkInt is an Android API level and abis is an
+    // Android ABI list. On iOS these fields carry different meanings
+    // (iOS major version, always arm64) — Apple Intelligence availability
+    // is checked separately via the apple_ai channel.
+    if (caps.platform != 'ios') {
+      if (sdk < AiThresholds.minSdkForLiteRt) {
+        reasons.add(TierReason.sdkTooOld);
+      }
+      if (caps.abis.isNotEmpty &&
+          !caps.abis.contains(AiThresholds.requiredAbi)) {
+        reasons.add(TierReason.unsupportedCpu);
+      }
     }
     final free = caps.freeStorageBytes;
     if (free != null && free < AiThresholds.minFreeBytesForModel) {

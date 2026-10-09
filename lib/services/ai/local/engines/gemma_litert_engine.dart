@@ -8,82 +8,7 @@ import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 import '../local_ai_engine.dart';
 import '../proposals/proposal_models.dart';
 import '../ask/ask_tools.dart';
-
-/// One raw function call emitted by the model, before validation.
-class RawToolCall {
-  final String name;
-  final Map<String, dynamic> args;
-  const RawToolCall(this.name, this.args);
-}
-
-/// Maps a [RawToolCall] to a [ProposedRecord]. Unknown/malformed calls
-/// return null — the caller drops them (never corrects, never invents).
-ProposedRecord? mapToolCallToProposal(RawToolCall call) {
-  final a = call.args;
-  String? s(String k) => a[k] is String ? a[k] as String : null;
-  num? n(String k) => a[k] is num ? a[k] as num : null;
-
-  switch (call.name) {
-    case 'propose_medication_taken':
-      final med = s('medication_name');
-      final quote = s('source_quote');
-      if (med == null || quote == null) return null;
-      return ProposedMedicationTaken(
-          medicationName: med, timePhrase: s('time_phrase'), sourceQuote: quote);
-    case 'propose_medication_skipped':
-      final med = s('medication_name');
-      final quote = s('source_quote');
-      if (med == null || quote == null) return null;
-      return ProposedMedicationSkipped(
-          medicationName: med,
-          reasonText: s('reason_text'),
-          sourceQuote: quote);
-    case 'propose_measurement':
-      final type = s('type');
-      final value1 = n('value1');
-      final unit = s('unit');
-      final quote = s('source_quote');
-      if (type == null || value1 == null || unit == null || quote == null) {
-        return null;
-      }
-      return ProposedMeasurement(
-          type: type,
-          value1: value1,
-          value2: n('value2'),
-          unit: unit,
-          timePhrase: s('time_phrase'),
-          sourceQuote: quote);
-    case 'propose_care_note':
-      final text = s('text');
-      final quote = s('source_quote');
-      if (text == null || quote == null) return null;
-      return ProposedCareNote(
-          text: text, timePhrase: s('time_phrase'), sourceQuote: quote);
-    case 'propose_appointment':
-      final when = s('datetime_phrase');
-      final quote = s('source_quote');
-      if (when == null || quote == null) return null;
-      return ProposedAppointment(
-          provider: s('provider'),
-          purpose: s('purpose'),
-          datetimePhrase: when,
-          sourceQuote: quote);
-    case 'propose_medication_schedule':
-      final name = s('name');
-      final quote = s('source_quote');
-      if (name == null || quote == null) return null;
-      return ProposedMedicationSchedule(
-          name: name,
-          strength: s('strength'),
-          instructionText: s('instruction_text'),
-          timesHhmm: (a['times_hhmm'] as List?)
-              ?.map((e) => e.toString())
-              .toList(),
-          sourceQuote: quote);
-    default:
-      return null;
-  }
-}
+import 'model_output.dart';
 
 /// Gemma via LiteRT-LM (flutter_gemma + flutter_gemma_litertlm).
 ///
@@ -253,68 +178,31 @@ class GemmaLiteRtEngine implements LocalAiEngine {
       if (clip is WavAudioClip) {
         final bytes = await File(clip.path).readAsBytes();
         await session.addQueryChunk(Message.withAudio(
-          text: _extractionInstruction(ctx, intent: intent),
+          text: extractionInstruction(ctx, intent: intent),
           audioBytes: bytes,
         ));
       } else if (image is FileImageInput) {
         final bytes = await File(image.path).readAsBytes();
         await session.addQueryChunk(Message.withImage(
-          text: _extractionInstruction(ctx, intent: intent),
+          text: extractionInstruction(ctx, intent: intent),
           imageBytes: bytes,
         ));
       } else {
         await session.addQueryChunk(Message.text(
           text:
-              '${_extractionInstruction(ctx, intent: intent)}\n\nHeard text: "${text ?? ''}"',
+              '${extractionInstruction(ctx, intent: intent)}\n\nHeard text: "${text ?? ''}"',
           isUser: true,
         ));
       }
       final out = await session.getResponse();
       return _InferenceOut(
-        transcript: _readJsonString(out, 'transcript'),
-        calls: _parseToolCalls(out),
+        transcript: readJsonString(out, 'transcript'),
+        calls: parseToolCalls(out),
       );
     } finally {
       await session.close();
       _touch();
     }
-  }
-
-  /// §6.3 tool schema, rendered into the prompt. Output contract: a JSON
-  /// object {"transcript": "...", "calls": [{"name": ..., "parameters": {...}}]}.
-  String _extractionInstruction(ExtractionContext ctx,
-      {ImageIntent? intent}) {
-    final meds = ctx.activeMeds.join(', ');
-    final target = switch (intent) {
-      ImageIntent.reseta => 'a photo of a handwritten prescription',
-      ImageIntent.label => 'a photo of a pill bottle label',
-      ImageIntent.monitor => 'a photo of a BP/glucose monitor screen',
-      null => 'the caregiver\'s spoken sentence',
-    };
-    return '''
-You convert $target into structured record proposals for a caregiving app.
-
-Rules:
-- Copy numbers EXACTLY as written/said. Never invent or correct values.
-- Include source_quote: a verbatim substring of the transcript field you output
-  (for images, the transcript is the text you read off the photo). Proposals
-  whose quote is not found in the transcript are dropped by the app.
-- If a field is unreadable, leave it null. Never guess a dose or a number.
-- If nothing recordable is present, return an empty calls array.
-- Known medications: [${meds.isEmpty ? 'none' : meds}]
-- Now: ${ctx.now.toIso8601String()} (${ctx.timezone})
-
-Output ONLY this JSON object, no prose:
-{"transcript":"<heard or read text>","calls":[{"name":"<tool>","parameters":{...}}]}
-
-Tools:
-- propose_medication_taken {medication_name, time_phrase|null, source_quote}
-- propose_medication_skipped {medication_name, reason_text|null, source_quote}
-- propose_measurement {type: blood_pressure|pulse|temperature|weight|blood_glucose, value1, value2|null, unit, time_phrase|null, source_quote}
-- propose_care_note {text, time_phrase|null, source_quote}
-- propose_appointment {provider|null, purpose|null, datetime_phrase, source_quote}
-- propose_medication_schedule {name, strength|null, instruction_text|null, times_hhmm|null, source_quote}
-''';
   }
 
   // -------------------------------------------------------------------------
@@ -364,7 +252,8 @@ Tools:
       return;
     }
 
-    var conversation = _askPrompt(req.query, tools.toolNames);
+    var conversation =
+        askPrompt(req.query, jsonEncode(AskTools.toolDescriptors));
     try {
       for (var round = 0; round < maxRounds; round++) {
         final out = await _serialized(() async {
@@ -383,15 +272,15 @@ Tools:
           }
         });
 
-        final toolName = _readJsonString(out, 'tool');
+        final toolName = readJsonString(out, 'tool');
         if (toolName == null || !tools.toolNames.contains(toolName)) {
           // Not a tool call → treat as the final answer.
-          final answer = _readJsonString(out, 'answer') ?? out.trim();
+          final answer = readJsonString(out, 'answer') ?? out.trim();
           yield AskAnswer(answer,
-              sourceIds: _readJsonStringList(out, 'source_ids'));
+              sourceIds: readJsonStringList(out, 'source_ids'));
           return;
         }
-        final args = _readJsonMap(out, 'args');
+        final args = readJsonMap(out, 'args');
         final result = await tools.call(toolName, args);
         conversation =
             '$conversation\n\nTool $toolName returned:\n${jsonEncode(result)}\nNow answer the question, or call another tool.';
@@ -402,68 +291,6 @@ Tools:
     }
   }
 
-  String _askPrompt(String query, List<String> toolNames) => '''
-You answer questions about an elder's care records using read-only tools.
-Tools: ${jsonEncode(AskTools.toolDescriptors)}
-
-To call a tool output ONLY: {"tool":"<name>","args":{...}}
-To answer output ONLY: {"answer":"<short plain answer>","source_ids":["<record ids used>"]}
-Question: "$query"
-''';
-
-  // -------------------------------------------------------------------------
-  // Output parsing (shared, also unit-tested)
-  // -------------------------------------------------------------------------
-
-  /// Extracts the calls array from model output; tolerates prose around the
-  /// JSON object.
-  static List<RawToolCall> parseToolCalls(String output) =>
-      _parseToolCalls(output);
-
-  static List<RawToolCall> _parseToolCalls(String output) {
-    final obj = _decodeJsonObject(output);
-    if (obj == null) return const [];
-    final calls = obj['calls'];
-    if (calls is! List) return const [];
-    return calls
-        .whereType<Map>()
-        .map((c) => RawToolCall(
-              c['name']?.toString() ?? '',
-              (c['parameters'] as Map?)?.cast<String, dynamic>() ?? const {},
-            ))
-        .where((c) => c.name.isNotEmpty)
-        .toList();
-  }
-
-  static Map<String, dynamic>? _decodeJsonObject(String output) {
-    final start = output.indexOf('{');
-    final end = output.lastIndexOf('}');
-    if (start < 0 || end <= start) return null;
-    try {
-      final decoded = jsonDecode(output.substring(start, end + 1));
-      return decoded is Map<String, dynamic> ? decoded : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static String? _readJsonString(String output, String key) {
-    final obj = _decodeJsonObject(output);
-    final v = obj?[key];
-    return v is String && v.isNotEmpty ? v : null;
-  }
-
-  static List<String> _readJsonStringList(String output, String key) {
-    final obj = _decodeJsonObject(output);
-    final v = obj?[key];
-    return v is List ? v.map((e) => e.toString()).toList() : const [];
-  }
-
-  static Map<String, Object?> _readJsonMap(String output, String key) {
-    final obj = _decodeJsonObject(output);
-    final v = obj?[key];
-    return v is Map ? v.cast<String, Object?>() : const {};
-  }
 }
 
 class _InferenceOut {
