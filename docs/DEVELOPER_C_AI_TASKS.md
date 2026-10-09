@@ -87,7 +87,7 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 **Files:** `lib/features/capture/presentation/review_tray_screen.dart`, `widgets/proposal_card.dart`
 - [x] Heard-text header, card per proposal, **Sure/Check** badge, quote line, Edit/✕, "Kumpirmahin lahat"
 - [ ] **Edit** opens A's existing form pre-filled (route + extra args; no new form code) — currently a placeholder snackbar
-- [ ] Rejected values show reason and can't be confirmed until edited — badge shows, but confirm blocking is not enforced
+- [x] Rejected values show reason and can't be confirmed until edited — Check badge + confirm gate refuses to write out-of-range/unsupported proposals; they stay pending for edit/discard (audit fix F2/F4/F22)
 - [ ] Pending-proposals strip pinned at top of Ngayon (B)
 - [x] Semantics labels, ≥ 48 dp targets, icon + text (not color-only)
 **Accept:** widget tests with `ScriptedEngine` fixtures — `test/features/capture/review_flow_test.dart` covers confirm/discard on a real in-memory DB; golden screenshots not done.
@@ -191,4 +191,4 @@ Shared:  router.dart (add routes only), pubspec.yaml (flutter_gemma, sherpa_onnx
 - [ ] Delete model → app still fully usable in Basic mode with a visible banner
 - [ ] SOS works in airplane mode, unchanged
 - [ ] `docs/SPIKE_RESULTS.md` filled in; every number shown in the demo is in it
-- [ ] `flutter analyze` and `flutter test` clean
+- [x] `flutter analyze` and `flutter test` clean — 219 tests, 0 analyzer issues (post-audit)
