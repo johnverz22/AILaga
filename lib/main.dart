@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 import 'app/app.dart';
 import 'core/database/database_provider.dart';
 import 'core/errors/error_handler.dart';
@@ -10,6 +12,20 @@ void main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     
+    // Offline-first, no crashlytics: persist uncaught errors to an
+    // on-device log file so they can be pulled for debugging.
+    await ErrorHandler.init();
+
+    // Initialize FlutterGemma once at startup (required by flutter_gemma 1.11.3
+    // — must be called before runApp, not lazily inside engine methods).
+    // Wrap in try/catch: on simulators or platforms without LiteRT support the
+    // call throws, but NullEngine handles the graceful fallback.
+    try {
+      await FlutterGemma.initialize(inferenceEngines: [LiteRtLmEngine()]);
+    } catch (_) {
+      // Ignore — DeviceProbe / NullEngine provides the fallback path.
+    }
+
     // Set up global error handling
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);

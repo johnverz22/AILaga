@@ -318,7 +318,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
       if (mounted) {
         final message = e is AiUnavailable
             ? 'Phone helper is off. Install it in Settings → Phone helper to analyze photos.'
-            : 'Something went wrong. Try again.';
+            : 'Error: $e';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
