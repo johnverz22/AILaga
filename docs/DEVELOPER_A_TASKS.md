@@ -42,11 +42,11 @@ Developer B (UI & Summaries) depends on your repository interfaces and database 
 **File:** `lib/core/database/app_database.dart`
 **Status:** Scaffold exists, needs code generation and verification
 
-- [ ] Run `dart run build_runner build` to generate `app_database.g.dart`
-- [ ] Verify all 9 tables compile and generate correctly
-- [ ] Test database creation on a fresh start
-- [ ] Verify foreign key enforcement works (`PRAGMA foreign_keys = ON`)
-- [ ] Add indexes for common lookups:
+- [x] Run `dart run build_runner build` to generate `app_database.g.dart`
+- [x] Verify all 9 tables compile and generate correctly
+- [x] Test database creation on a fresh start
+- [x] Verify foreign key enforcement works (`PRAGMA foreign_keys = ON`)
+- [x] Add indexes for common lookups:
   - `medication_occurrences.scheduled_at`
   - `measurement_logs.measured_at`
   - `appointments.scheduled_at`
@@ -62,24 +62,24 @@ Developer B (UI & Summaries) depends on your repository interfaces and database 
 - `lib/core/utilities/uuid_generator.dart`
 - `lib/core/errors/app_exception.dart`
 
-- [ ] Implement date formatting helpers (UTC ↔ local, display formats)
-- [ ] Implement `formatRelativeTime` (e.g., "2 hours ago")
-- [ ] Implement input validators:
+- [x] Implement date formatting helpers (UTC ↔ local, display formats)
+- [x] Implement `formatRelativeTime` (e.g., "2 hours ago")
+- [x] Implement input validators:
   - Phone number (flexible, not country-locked)
   - Measurement ranges (BP: 50-300, temp: 30-45°C, pulse: 20-300, etc.)
   - Required field validation
   - Date range validation
-- [ ] UUID v4 generation wrapper
-- [ ] Define exception hierarchy: `AppException`, `DatabaseException`, `ValidationException`
+- [x] UUID v4 generation wrapper
+- [x] Define exception hierarchy: `AppException`, `DatabaseException`, `ValidationException`
 
 **Acceptance:** All utility functions have unit tests, validators reject out-of-range values.
 
 #### Task A3: Database Provider
 **File:** `lib/core/database/database_provider.dart`
 
-- [ ] Create a Riverpod provider that lazily initializes the database
-- [ ] Ensure single instance across the app
-- [ ] Handle database path resolution via `path_provider`
+- [x] Create a Riverpod provider that lazily initializes the database
+- [x] Ensure single instance across the app
+- [x] Handle database path resolution via `path_provider`
 
 **Acceptance:** Provider resolves correctly, database initializes on first access.
 
@@ -107,10 +107,10 @@ abstract class CareRecipientRepository {
 }
 ```
 
-- [ ] Implement entity with all fields from schema
-- [ ] Implement Drift-backed repository
-- [ ] Create Riverpod providers: `careRecipientRepositoryProvider`, `primaryCareRecipientProvider`
-- [ ] Handle first-time case (no recipient exists)
+- [x] Implement entity with all fields from schema
+- [x] Implement Drift-backed repository
+- [x] Create Riverpod providers: `careRecipientRepositoryProvider`, `primaryCareRecipientProvider`
+- [x] Handle first-time case (no recipient exists)
 
 **Acceptance:** Can create, read, update a care recipient. Data persists across app restart.
 
@@ -120,12 +120,12 @@ abstract class CareRecipientRepository {
 - `lib/features/care_recipient/presentation/edit_care_recipient_screen.dart`
 - `lib/features/care_recipient/presentation/widgets/care_recipient_card.dart`
 
-- [ ] Profile display screen with all fields
-- [ ] Edit form with validation (display name required)
-- [ ] Allergies and important notes as multiline text
-- [ ] Emergency info section
-- [ ] Link to family contacts from profile
-- [ ] Delete profile with confirmation dialog
+- [x] Profile display screen with all fields
+- [x] Edit form with validation (display name required)
+- [x] Allergies and important notes as multiline text
+- [x] Emergency info section
+- [x] Link to family contacts from profile
+- [x] Delete profile with confirmation dialog
 
 **Acceptance:** Full CRUD on care recipient through UI. Form validation works.
 
@@ -149,10 +149,10 @@ abstract class FamilyContactRepository {
 }
 ```
 
-- [ ] Implement entity with all fields
-- [ ] Implement Drift-backed repository
-- [ ] Support reordering (update sortOrder)
-- [ ] Create providers
+- [x] Implement entity with all fields
+- [x] Implement Drift-backed repository
+- [x] Support reordering (update sortOrder)
+- [x] Create providers
 
 **Acceptance:** Can add, edit, delete, reorder family contacts. Emergency contacts filterable.
 
@@ -162,12 +162,12 @@ abstract class FamilyContactRepository {
 - `lib/features/family_contacts/presentation/add_family_contact_screen.dart`
 - `lib/features/family_contacts/presentation/widgets/family_contact_card.dart`
 
-- [ ] Contact list with reorderable tiles
-- [ ] Add/edit form with phone number validation
-- [ ] Emergency contact toggle
-- [ ] Call button → opens system dialer via `url_launcher`
-- [ ] SMS button → opens SMS composer via `url_launcher`
-- [ ] Delete with confirmation
+- [x] Contact list with reorderable tiles
+- [x] Add/edit form with phone number validation
+- [x] Emergency contact toggle
+- [x] Call button → opens system dialer via `url_launcher`
+- [x] SMS button → opens SMS composer via `url_launcher`
+- [x] Delete with confirmation
 
 **Acceptance:** Full CRUD, call/SMS open system apps, emergency contacts marked clearly.
 
@@ -206,11 +206,11 @@ abstract class MedicationRepository {
 ```
 
 **Critical rules:**
-- [ ] `generateOccurrences` must be IDEMPOTENT — check for existing before inserting
-- [ ] Use unique constraint on (scheduleId, scheduledAt) to prevent duplicates
-- [ ] `deactivateSchedule` sets `isActive = false`, does NOT delete history
-- [ ] `updateSchedule` does NOT rewrite past occurrences
-- [ ] Schedule times stored as JSON array of "HH:mm" strings
+- [x] `generateOccurrences` must be IDEMPOTENT — check for existing before inserting
+- [x] Use unique constraint on (scheduleId, scheduledAt) to prevent duplicates
+- [x] `deactivateSchedule` sets `isActive = false`, does NOT delete history
+- [x] `updateSchedule` does NOT rewrite past occurrences
+- [x] Schedule times stored as JSON array of "HH:mm" strings
 
 **Acceptance:** Idempotent occurrence generation verified. Status updates persist. History preserved on deactivation.
 
@@ -222,13 +222,13 @@ abstract class MedicationRepository {
 - `lib/features/medications/presentation/widgets/medication_card.dart`
 - `lib/features/medications/presentation/widgets/occurrence_tile.dart`
 
-- [ ] Medication list screen showing active schedules
-- [ ] Add/edit form: name (required), instructions, schedule times (multi-time picker), start date, end date, notes
-- [ ] Detail screen with occurrence history
-- [ ] Occurrence tile with status actions: Mark Taken, Mark Skipped, Mark Not Confirmed
-- [ ] Visual distinction: taken (green), skipped (orange), pending (gray), overdue (red outline)
-- [ ] "Overdue" label does NOT say "missed" — just shows time elapsed
-- [ ] Deactivate schedule action (not delete)
+- [x] Medication list screen showing active schedules
+- [x] Add/edit form: name (required), instructions, schedule times (multi-time picker), start date, end date, notes
+- [x] Detail screen with occurrence history
+- [x] Occurrence tile with status actions: Mark Taken, Mark Skipped, Mark Not Confirmed
+- [x] Visual distinction: taken (green), skipped (orange), pending (gray), overdue (red outline)
+- [x] "Overdue" label does NOT say "missed" — just shows time elapsed
+- [x] Deactivate schedule action (not delete)
 
 **Acceptance:** Full medication CRUD. Occurrence status changes persist. Overdue shown without "missed" language.
 
@@ -257,9 +257,9 @@ abstract class MeasurementRepository {
 }
 ```
 
-- [ ] Blood pressure stored as value1 (systolic) + value2 (diastolic)
-- [ ] Validate ranges per type
-- [ ] Source type tracking (manual, health_connect, other)
+- [x] Blood pressure stored as value1 (systolic) + value2 (diastolic)
+- [x] Validate ranges per type
+- [x] Source type tracking (manual, health_connect, other)
 
 **Acceptance:** All measurement types can be recorded with proper validation. BP stores two values.
 
@@ -269,16 +269,16 @@ abstract class MeasurementRepository {
 - `lib/features/measurements/presentation/add_measurement_screen.dart`
 - `lib/features/measurements/presentation/widgets/measurement_card.dart`
 
-- [ ] Measurement history grouped by type or chronological
-- [ ] Add form that adapts to measurement type:
+- [x] Measurement history grouped by type or chronological
+- [x] Add form that adapts to measurement type:
   - Blood Pressure: systolic + diastolic fields + unit (mmHg)
   - Pulse: value + unit (bpm)
   - Temperature: value + unit (°C/°F)
   - Weight: value + unit (kg/lbs)
   - Blood Glucose: value + unit (mg/dL or mmol/L)
-- [ ] Date/time picker for measurement time
-- [ ] Source label display
-- [ ] Range validation with user-friendly error messages (NOT silent correction)
+- [x] Date/time picker for measurement time
+- [x] Source label display
+- [x] Range validation with user-friendly error messages (NOT silent correction)
 
 **Acceptance:** Each measurement type has appropriate form fields. Validation rejects implausible values with clear messages.
 
@@ -289,25 +289,25 @@ abstract class MeasurementRepository {
 #### Task A12: Appointment Repository + Screens
 **Files:** All files in `lib/features/appointments/`
 
-- [ ] Repository with CRUD + date range queries + status updates
-- [ ] Stream provider for upcoming appointments
-- [ ] List screen with upcoming/past tabs
-- [ ] Add/edit form: provider, purpose, date/time, notes
-- [ ] Status management: scheduled → completed/cancelled
-- [ ] Appointment card widget
+- [x] Repository with CRUD + date range queries + status updates
+- [x] Stream provider for upcoming appointments
+- [x] List screen with upcoming/past tabs
+- [x] Add/edit form: provider, purpose, date/time, notes
+- [x] Status management: scheduled → completed/cancelled
+- [x] Appointment card widget
 
 **Acceptance:** Full CRUD. Status transitions work. Date range queries correct.
 
 #### Task A13: Care Note Repository + Screens
 **Files:** All files in `lib/features/care_notes/`
 
-- [ ] Repository with CRUD + date range queries
-- [ ] Chronological observation list
-- [ ] Add note form with observed_at timestamp
-- [ ] Source type tracking (manual vs ai_assisted)
-- [ ] Review status (unreviewed/confirmed)
-- [ ] Original text always preserved
-- [ ] Structured summary field (nullable, set by AI later)
+- [x] Repository with CRUD + date range queries
+- [x] Chronological observation list
+- [x] Add note form with observed_at timestamp
+- [x] Source type tracking (manual vs ai_assisted)
+- [x] Review status (unreviewed/confirmed)
+- [x] Original text always preserved
+- [x] Structured summary field (nullable, set by AI later)
 
 **Acceptance:** Notes persist with timestamps. Original text immutable. Source type displayed.
 
@@ -323,8 +323,8 @@ abstract class MeasurementRepository {
 - `lib/features/emergency/data/emergency_repository_impl.dart`
 - `lib/features/emergency/data/emergency_providers.dart`
 
-- [ ] Emergency event recording (create, update status)
-- [ ] Emergency service interface:
+- [x] Emergency event recording (create, update status)
+- [x] Emergency service interface:
   ```dart
   abstract class EmergencyService {
     Future<String> triggerEmergency(String recipientId, String triggerType);
@@ -334,8 +334,8 @@ abstract class MeasurementRepository {
     Future<void> openSmsComposer(String phoneNumber, String message);
   }
   ```
-- [ ] Implementation using url_launcher for call/SMS
-- [ ] Never claim successful delivery
+- [x] Implementation using url_launcher for call/SMS
+- [x] Never claim successful delivery
 
 **Acceptance:** Events recorded with accurate timestamps. Call/SMS open system apps without false success claims.
 
@@ -345,15 +345,15 @@ abstract class MeasurementRepository {
 - `lib/features/emergency/presentation/widgets/sos_button.dart`
 - `lib/features/emergency/presentation/widgets/countdown_overlay.dart`
 
-- [ ] Full-screen emergency UI with large, clear elements
-- [ ] Configurable emergency number (default: 911, or 117 for PH)
-- [ ] Emergency call button → opens dialer
-- [ ] Trusted contacts list with one-tap call
-- [ ] SMS preparation with user confirmation
-- [ ] Cancellation countdown (5 seconds) with prominent cancel button
-- [ ] Accidental trigger protection
-- [ ] Clear status feedback: "Dialer opened" not "Help is on the way"
-- [ ] Works offline, no AI dependency
+- [x] Full-screen emergency UI with large, clear elements
+- [x] Configurable emergency number (default: 911, or 117 for PH)
+- [x] Emergency call button → opens dialer
+- [x] Trusted contacts list with one-tap call
+- [x] SMS preparation with user confirmation
+- [x] Cancellation countdown (5 seconds) with prominent cancel button
+- [x] Accidental trigger protection
+- [x] Clear status feedback: "Dialer opened" not "Help is on the way"
+- [x] Works offline, no AI dependency
 
 **Acceptance:** SOS triggers in <1 second. Cancel works during countdown. No false delivery claims. Works in airplane mode.
 
@@ -362,11 +362,11 @@ abstract class MeasurementRepository {
 - `lib/features/emergency/presentation/shake_detector.dart`
 - Kotlin: `android/app/src/main/kotlin/com/ailaga/ailaga/MainActivity.kt`
 
-- [ ] Three-shake detection using sensors_plus
-- [ ] Configurable sensitivity
-- [ ] Enable/disable from settings
-- [ ] Only active when app is in foreground
-- [ ] Not presented as a health-event detector
+- [x] Three-shake detection using sensors_plus
+- [x] Configurable sensitivity
+- [x] Enable/disable from settings
+- [x] Only active when app is in foreground
+- [x] Not presented as a health-event detector
 
 **Acceptance:** Gesture triggers SOS flow. Can be disabled. Only works in-app.
 
@@ -379,18 +379,18 @@ abstract class MeasurementRepository {
 - `lib/core/notifications/notification_service.dart`
 - `lib/core/notifications/notification_provider.dart`
 
-- [ ] Initialize flutter_local_notifications with Android config
-- [ ] Schedule medication reminders based on occurrence times
-- [ ] Schedule appointment reminders (e.g., 30 min before)
-- [ ] Cancel reminders when schedule deactivated
-- [ ] Handle notification tap → navigate to relevant screen
-- [ ] Permission request flow with explanation
-- [ ] Reconciliation on app start:
+- [x] Initialize flutter_local_notifications with Android config
+- [x] Schedule medication reminders based on occurrence times
+- [x] Schedule appointment reminders (e.g., 30 min before)
+- [x] Cancel reminders when schedule deactivated
+- [x] Handle notification tap → navigate to relevant screen
+- [x] Permission request flow with explanation
+- [x] Reconciliation on app start:
   - Generate occurrences for today
   - Schedule notifications for pending occurrences
   - Cancel notifications for past occurrences
-- [ ] Handle permission denied gracefully with user explanation
-- [ ] Persist schedule IDs for cancellation
+- [x] Handle permission denied gracefully with user explanation
+- [x] Persist schedule IDs for cancellation
 
 **Acceptance:** Notifications fire on time (under test conditions). Permission denial shows explanation. Reconciliation is idempotent. No duplicates after restart.
 

@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.13.4
+  sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -25,7 +25,9 @@ dependencies:
   sensors_plus: ^6.1.1
   permission_handler: ^11.3.1
   printing: ^5.13.5
-  google_fonts: ^9.0.0
+  google_fonts: ^8.1.0
+  timezone: ^0.10.1
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:

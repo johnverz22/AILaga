@@ -46,7 +46,23 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/medications/add',
-      builder: (context, state) => const AddMedicationScreen(),
+      builder: (context, state) {
+        final extra = state.extra;
+        String recipientId;
+        String? scheduleId;
+        if (extra is String) {
+          recipientId = extra;
+        } else if (extra is Map) {
+          recipientId = extra['recipientId'] as String;
+          scheduleId = extra['scheduleId'] as String?;
+        } else {
+          recipientId = '';
+        }
+        return AddMedicationScreen(
+          recipientId: recipientId,
+          scheduleId: scheduleId,
+        );
+      },
     ),
     GoRoute(
       path: '/medications/:id',
@@ -60,7 +76,11 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/measurements/add',
-      builder: (context, state) => const AddMeasurementScreen(),
+      builder: (context, state) {
+        final recipientId =
+            state.extra is String ? state.extra as String : '';
+        return AddMeasurementScreen(recipientId: recipientId);
+      },
     ),
     GoRoute(
       path: '/appointments',
@@ -68,7 +88,21 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/appointments/add',
-      builder: (context, state) => const AddAppointmentScreen(),
+      builder: (context, state) {
+        final extra = state.extra;
+        String recipientId = '';
+        String? appointmentId;
+        if (extra is String) {
+          recipientId = extra;
+        } else if (extra is Map) {
+          recipientId = extra['recipientId'] as String;
+          appointmentId = extra['appointmentId'] as String?;
+        }
+        return AddAppointmentScreen(
+          recipientId: recipientId,
+          appointmentId: appointmentId,
+        );
+      },
     ),
     GoRoute(
       path: '/care-notes',
@@ -76,7 +110,11 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/care-notes/add',
-      builder: (context, state) => const AddCareNoteScreen(),
+      builder: (context, state) {
+        final recipientId =
+            state.extra is String ? state.extra as String : '';
+        return AddCareNoteScreen(recipientId: recipientId);
+      },
     ),
     GoRoute(
       path: '/care-brief',
@@ -96,7 +134,24 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/family-contacts/add',
-      builder: (context, state) => const AddFamilyContactScreen(),
+      builder: (context, state) {
+        // extra can be a String (recipientId only) or a Map with recipientId + contactId
+        final extra = state.extra;
+        String recipientId;
+        String? contactId;
+        if (extra is String) {
+          recipientId = extra;
+        } else if (extra is Map) {
+          recipientId = extra['recipientId'] as String;
+          contactId = extra['contactId'] as String?;
+        } else {
+          recipientId = '';
+        }
+        return AddFamilyContactScreen(
+          recipientId: recipientId,
+          contactId: contactId,
+        );
+      },
     ),
     GoRoute(
       path: '/settings',

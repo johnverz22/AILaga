@@ -28,7 +28,8 @@ class FamilyContacts extends Table {
   TextColumn get displayName => text().withLength(min: 1, max: 200)();
   TextColumn get relationship => text().nullable()();
   TextColumn get phoneNumber => text().withLength(min: 1, max: 30)();
-  BoolColumn get isEmergencyContact => boolean().withDefault(const Constant(false))();
+  BoolColumn get isEmergencyContact =>
+      boolean().withDefault(const Constant(false))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -43,7 +44,7 @@ class MedicationSchedules extends Table {
   TextColumn get careRecipientId => text().references(CareRecipients, #id)();
   TextColumn get medicationName => text().withLength(min: 1, max: 300)();
   TextColumn get prescribedInstructions => text().nullable()();
-  TextColumn get scheduleTimes => text()(); // JSON array of time strings
+  TextColumn get scheduleTimes => text()(); // JSON array of "HH:mm" strings
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get endDate => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
@@ -58,9 +59,11 @@ class MedicationSchedules extends Table {
 @DataClassName('MedicationOccurrence')
 class MedicationOccurrences extends Table {
   TextColumn get id => text()();
-  TextColumn get medicationScheduleId => text().references(MedicationSchedules, #id)();
+  TextColumn get medicationScheduleId =>
+      text().references(MedicationSchedules, #id)();
   DateTimeColumn get scheduledAt => dateTime()();
-  TextColumn get status => text().withDefault(const Constant('pending'))(); // pending, taken, skipped, not_confirmed
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  // pending, taken, skipped, not_confirmed
   DateTimeColumn get statusUpdatedAt => dateTime().nullable()();
   TextColumn get statusNote => text().nullable()();
   TextColumn get recordedByLabel => text().nullable()();
@@ -68,19 +71,27 @@ class MedicationOccurrences extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  // Unique constraint: one occurrence per schedule per scheduled time.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {medicationScheduleId, scheduledAt}
+      ];
 }
 
 @DataClassName('MeasurementLog')
 class MeasurementLogs extends Table {
   TextColumn get id => text()();
   TextColumn get careRecipientId => text().references(CareRecipients, #id)();
-  TextColumn get measurementType => text()(); // blood_pressure, pulse, temperature, weight, blood_glucose
+  TextColumn get measurementType =>
+      text()(); // blood_pressure, pulse, temperature, weight, blood_glucose
   RealColumn get value1 => real()(); // primary value (or systolic for BP)
-  RealColumn get value2 => real().nullable()(); // diastolic for BP, null for others
+  RealColumn get value2 => real().nullable()(); // diastolic for BP, null otherwise
   TextColumn get unit => text()();
   DateTimeColumn get measuredAt => dateTime()();
   DateTimeColumn get recordedAt => dateTime()();
-  TextColumn get sourceType => text().withDefault(const Constant('manual'))(); // manual, health_connect, other
+  TextColumn get sourceType =>
+      text().withDefault(const Constant('manual'))(); // manual, health_connect, other
   TextColumn get sourceLabel => text().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -98,7 +109,8 @@ class Appointments extends Table {
   TextColumn get purpose => text().nullable()();
   DateTimeColumn get scheduledAt => dateTime()();
   TextColumn get notes => text().nullable()();
-  TextColumn get status => text().withDefault(const Constant('scheduled'))(); // scheduled, completed, cancelled
+  TextColumn get status =>
+      text().withDefault(const Constant('scheduled'))(); // scheduled, completed, cancelled
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -114,8 +126,10 @@ class CareNotes extends Table {
   DateTimeColumn get recordedAt => dateTime()();
   TextColumn get originalText => text().withLength(min: 1)();
   TextColumn get structuredSummary => text().nullable()();
-  TextColumn get sourceType => text().withDefault(const Constant('manual'))(); // manual, ai_assisted
-  TextColumn get reviewStatus => text().withDefault(const Constant('unreviewed'))(); // unreviewed, confirmed
+  TextColumn get sourceType =>
+      text().withDefault(const Constant('manual'))(); // manual, ai_assisted
+  TextColumn get reviewStatus =>
+      text().withDefault(const Constant('unreviewed'))(); // unreviewed, confirmed
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -131,7 +145,9 @@ class EmergencyEvents extends Table {
   TextColumn get triggerType => text()(); // button, gesture
   DateTimeColumn get cancelledAt => dateTime().nullable()();
   TextColumn get selectedAction => text().nullable()();
-  TextColumn get actionStatus => text().withDefault(const Constant('triggered'))(); // triggered, cancelled, action_opened, unknown
+  TextColumn get actionStatus =>
+      text().withDefault(const Constant('triggered'))();
+  // triggered, cancelled, action_opened, unknown
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
@@ -162,7 +178,7 @@ class AppSettings extends Table {
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
-  
+
   /// For testing — accepts a custom executor
   AppDatabase.forTesting(super.executor);
 
@@ -171,10 +187,35 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    beforeOpen: (details) async {
-      await customStatement('PRAGMA foreign_keys = ON');
-    },
-  );
+        onCreate: (m) async {
+          await m.createAll();
+          // Indexes for common lookups (performance).
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_med_occ_scheduled_at '
+            'ON medication_occurrences (scheduled_at)',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_med_occ_schedule_id '
+            'ON medication_occurrences (medication_schedule_id)',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_measurement_measured_at '
+            'ON measurement_logs (measured_at)',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_appointments_scheduled_at '
+            'ON appointments (scheduled_at)',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_care_notes_observed_at '
+            'ON care_notes (observed_at)',
+          );
+        },
+        beforeOpen: (details) async {
+          // Enforce foreign key constraints.
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
+      );
 }
 
 QueryExecutor _openConnection() {
