@@ -9,6 +9,7 @@ import '../../../services/ai/local/capture/voice_capture_service.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/proposals/proposal_models.dart';
+import '../../../services/ai/local/proposals/proposal_repository.dart';
 import '../../../services/ai/local/proposals/proposal_validator.dart';
 import '../../../services/ai/local/proposals/basic_text_extractor.dart';
 import '../../../features/medications/data/medication_providers.dart';
@@ -460,11 +461,13 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       latencyMs: latencyMs,
     );
 
+    final staged = <StagedProposal>[];
     for (final proposal in validated) {
-      await captureRepo.createProposal(
+      final id = await captureRepo.createProposal(
         captureId: captureId,
         record: proposal,
       );
+      staged.add(StagedProposal(proposalId: id, record: proposal));
     }
 
     setState(() {
@@ -481,7 +484,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
             captureId: captureId,
             careRecipientId: recipientId,
             heardText: transcript,
-            proposals: validated,
+            proposals: staged,
           ),
         ),
       );

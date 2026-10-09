@@ -57,14 +57,31 @@ class ProposalCard extends StatelessWidget {
                         : Colors.orange.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    isSure ? 'Sure' : 'Check',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isSure ? Colors.green.shade700 : Colors.orange.shade700,
-                    ),
-                    semanticsLabel: isSure ? 'High confidence' : 'Needs review',
+                  // Icon + word: never color alone (a11y spec).
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSure ? Icons.check_circle : Icons.warning_amber,
+                        size: 12,
+                        color: isSure
+                            ? Colors.green.shade700
+                            : Colors.orange.shade700,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isSure ? 'Sure' : 'Check',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isSure
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
+                        ),
+                        semanticsLabel:
+                            isSure ? 'High confidence' : 'Needs review',
+                      ),
+                    ],
                   ),
                 ),
               ],

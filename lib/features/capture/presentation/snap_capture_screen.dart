@@ -8,6 +8,7 @@ import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/capture/snap_service.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/proposals/proposal_models.dart';
+import '../../../services/ai/local/proposals/proposal_repository.dart';
 import '../../../services/ai/local/proposals/proposal_validator.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import '../../medications/data/medication_providers.dart';
@@ -263,8 +264,11 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
         modelId: engine.engineId,
         latencyMs: sw.elapsedMilliseconds,
       );
+      final staged = <StagedProposal>[];
       for (final p in validated) {
-        await captureRepo.createProposal(captureId: captureId, record: p);
+        final id = await captureRepo.createProposal(
+            captureId: captureId, record: p);
+        staged.add(StagedProposal(proposalId: id, record: p));
       }
 
       // Photo is discarded after use unless the user attached it.
@@ -280,7 +284,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
               captureId: captureId,
               careRecipientId: recipient.id,
               heardText: transcript.isEmpty ? null : transcript,
-              proposals: validated,
+              proposals: staged,
             ),
           ),
         );

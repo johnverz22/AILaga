@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/ai/local/proposals/proposal_models.dart';
+import '../../../services/ai/local/proposals/proposal_repository.dart';
 import '../data/capture_providers.dart';
 import 'widgets/proposal_card.dart';
 
@@ -11,7 +12,7 @@ class ReviewTrayScreen extends ConsumerStatefulWidget {
   final String captureId;
   final String careRecipientId;
   final String? heardText;
-  final List<ProposedRecord> proposals;
+  final List<StagedProposal> proposals;
 
   const ReviewTrayScreen({
     super.key,
@@ -26,7 +27,7 @@ class ReviewTrayScreen extends ConsumerStatefulWidget {
 }
 
 class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
-  late List<ProposedRecord> _proposals;
+  late List<StagedProposal> _proposals;
   bool _confirming = false;
 
   @override
@@ -92,9 +93,9 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                     padding: const EdgeInsets.only(top: 8, bottom: 100),
                     itemCount: _proposals.length,
                     itemBuilder: (context, index) {
-                      final record = _proposals[index];
+                      final staged = _proposals[index];
                       return ProposalCard(
-                        record: record,
+                        record: staged.record,
                         onDiscard: () => _discardAt(index),
                         onEdit: () => _editAt(index, context),
                       );
@@ -132,14 +133,29 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
     );
   }
 
-  void _discardAt(int index) {
-    setState(() {
-      _proposals.removeAt(index);
-    });
+  /// Discard must hit the DB BEFORE the card disappears: confirmAll reads
+  /// pending rows, so a card removed only locally would still be written.
+  Future<void> _discardAt(int index) async {
+    final staged = _proposals[index];
+    try {
+      await ref
+          .read(confirmProposalsProvider(widget.careRecipientId))
+          .discardOne(staged.proposalId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hindi na-discard: $e')),
+        );
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() => _proposals.removeAt(index));
+    }
   }
 
   void _editAt(int index, BuildContext context) {
-    final record = _proposals[index];
+    final record = _proposals[index].record;
     // Navigate to existing edit forms based on record type
     if (record is ProposedMeasurement) {
       // Could push to add_measurement with prefilled values

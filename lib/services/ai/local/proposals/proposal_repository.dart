@@ -50,6 +50,14 @@ class AiProposalEntity {
   });
 }
 
+/// A validated proposal paired with its staged row id — what the review
+/// tray operates on, so discard/confirm act on real rows, not indexes.
+class StagedProposal {
+  final String proposalId;
+  final ProposedRecord record;
+  const StagedProposal({required this.proposalId, required this.record});
+}
+
 /// Repository for AI captures and proposals (staging area).
 class AiCaptureRepository {
   final AppDatabase _db;

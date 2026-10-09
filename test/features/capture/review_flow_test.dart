@@ -52,7 +52,8 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<String> seedCapture(List<ProposedRecord> records) async {
+  Future<(String, List<StagedProposal>)> seedCapture(
+      List<ProposedRecord> records) async {
     final captureId = await captureRepo.createCapture(
       careRecipientId: recipientId,
       modality: 'voice',
@@ -61,15 +62,18 @@ void main() {
       modelId: 'scripted',
       latencyMs: 10,
     );
+    final staged = <StagedProposal>[];
     for (final r in records) {
-      await captureRepo.createProposal(captureId: captureId, record: r);
+      final id =
+          await captureRepo.createProposal(captureId: captureId, record: r);
+      staged.add(StagedProposal(proposalId: id, record: r));
     }
-    return captureId;
+    return (captureId, staged);
   }
 
   Widget harness({
     required String captureId,
-    required List<ProposedRecord> proposals,
+    required List<StagedProposal> proposals,
   }) {
     return ProviderScope(
       overrides: [appDatabaseProvider.overrideWithValue(db)],
@@ -98,9 +102,9 @@ void main() {
         sourceQuote: 'BP 120/80',
       ),
     ];
-    final captureId = await seedCapture(proposals);
+    final (captureId, staged) = await seedCapture(proposals);
 
-    await tester.pumpWidget(harness(captureId: captureId, proposals: proposals));
+    await tester.pumpWidget(harness(captureId: captureId, proposals: staged));
     await tester.pumpAndSettle();
 
     // Review tray shows heard text + both proposals.
@@ -139,9 +143,9 @@ void main() {
         sourceQuote: 'BP 120/80',
       ),
     ];
-    final captureId = await seedCapture(proposals);
+    final (captureId, staged) = await seedCapture(proposals);
 
-    await tester.pumpWidget(harness(captureId: captureId, proposals: proposals));
+    await tester.pumpWidget(harness(captureId: captureId, proposals: staged));
     await tester.pumpAndSettle();
 
     await tester.tap(find.descendant(
@@ -152,5 +156,57 @@ void main() {
 
     expect(find.textContaining('Walang narinig'), findsOneWidget);
     expect(find.textContaining('Kumpirmahin lahat'), findsNothing);
+
+    // The staged row is marked discarded — not merely hidden locally.
+    final all = await captureRepo.getAllProposalsForCapture(captureId);
+    expect(all.single.status, 'discarded');
+    expect(await captureRepo.getPendingProposals(captureId), isEmpty);
+  });
+
+  testWidgets('discarded proposal is NOT written by confirm all',
+      (tester) async {
+    final proposals = [
+      ProposedMedicationTaken(
+        medicationName: 'Amlodipine',
+        sourceQuote: 'uminom ng amlodipine',
+      ),
+      ProposedMeasurement(
+        type: 'blood_pressure',
+        value1: 120,
+        value2: 80,
+        unit: 'mmHg',
+        sourceQuote: 'BP 120/80',
+      ),
+    ];
+    final (captureId, staged) = await seedCapture(proposals);
+
+    await tester.pumpWidget(harness(captureId: captureId, proposals: staged));
+    await tester.pumpAndSettle();
+
+    // Discard the measurement card (second ProposalCard), then confirm all.
+    final cards = find.byType(ProposalCard);
+    expect(cards, findsNWidgets(2));
+    await tester.tap(find.descendant(
+      of: cards.at(1),
+      matching: find.byIcon(Icons.close),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Kumpirmahin lahat'));
+    await tester.pumpAndSettle();
+
+    // Med occurrence written; discarded measurement never persisted.
+    final occs = await MedicationRepositoryImpl(db)
+        .getOccurrencesForDate('ms-1', DateTime.now());
+    expect(occs.single.status, MedicationStatus.taken);
+
+    final now = DateTime.now();
+    final measurements = await MeasurementRepositoryImpl(db).getForDateRange(
+      recipientId,
+      now.subtract(const Duration(days: 1)),
+      now.add(const Duration(days: 1)),
+    );
+    expect(measurements, isEmpty,
+        reason: 'discarded proposal must never reach the repository');
   });
 }
