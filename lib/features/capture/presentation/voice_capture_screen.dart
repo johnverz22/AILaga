@@ -61,7 +61,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
                 backgroundColor: theme.colorScheme.error,
                 foregroundColor: theme.colorScheme.onError,
               ),
-              onPressed: () => Navigator.of(context).pushNamed('/emergency'),
+              onPressed: () => context.push('/emergency'),
               icon: const Icon(Icons.sos, size: 18),
               label: const Text('SOS'),
             ),

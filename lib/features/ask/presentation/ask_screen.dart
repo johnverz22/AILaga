@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
@@ -50,7 +51,7 @@ class _AskScreenState extends ConsumerState<AskScreen> {
                 backgroundColor: theme.colorScheme.error,
                 foregroundColor: theme.colorScheme.onError,
               ),
-              onPressed: () => Navigator.of(context).pushNamed('/emergency'),
+              onPressed: () => context.push('/emergency'),
               icon: const Icon(Icons.sos, size: 18),
               label: const Text('SOS'),
             ),
