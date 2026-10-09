@@ -12,14 +12,6 @@ final pendingTasksProvider = StreamProvider.autoDispose<int>((ref) {
   final recipient = ref.watch(primaryCareRecipientProvider).value;
   if (recipient == null) return Stream.value(0);
   
-  final occurrencesStream = ref.watch(medicationRepositoryProvider).watchTodayOccurrences(recipient.id);
-  final appointmentsStream = ref.watch(appointmentRepositoryProvider).watchUpcoming(recipient.id);
-  final notesStream = ref.watch(careNoteRepositoryProvider).watchRecent(recipient.id, limit: 50);
-  
-  // Combine streams or just use occurrences for now if simpler, but let's do a basic combine
-  // For simplicity, we'll just sum them up whenever any updates.
-  // Actually, we can use `Rx.combineLatest3` from rxdart if available, but let's just listen.
-  
   // To avoid complex stream combining without rxdart, we can just do individual providers:
   return Stream.value(0); // We will use multiple watchers in the build method instead
 });
@@ -52,7 +44,7 @@ class DashboardTasksSection extends ConsumerWidget {
     if (appointmentsAsync.hasValue) {
       final now = DateTime.now();
       upcomingApptsTodayCount = appointmentsAsync.value!.where((a) => 
-        a.date.year == now.year && a.date.month == now.month && a.date.day == now.day && a.date.isAfter(now)
+        a.scheduledAt.year == now.year && a.scheduledAt.month == now.month && a.scheduledAt.day == now.day && a.scheduledAt.isAfter(now)
       ).length;
     }
     

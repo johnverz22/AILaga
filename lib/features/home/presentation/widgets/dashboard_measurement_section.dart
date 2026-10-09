@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/utilities/date_utils.dart';
 import '../../../care_recipient/data/care_recipient_providers.dart';
 import '../../../measurements/data/measurement_providers.dart';
 import '../../../measurements/domain/measurement_entity.dart';
@@ -65,24 +65,24 @@ class DashboardMeasurementSection extends ConsumerWidget {
                 // Get most recent of each type
                 final Map<MeasurementType, MeasurementEntity> latestByType = {};
                 for (final measurement in measurements) {
-                  if (!latestByType.containsKey(measurement.type)) {
-                    latestByType[measurement.type] = measurement;
+                  if (!latestByType.containsKey(measurement.measurementType)) {
+                    latestByType[measurement.measurementType] = measurement;
                   } else {
-                    if (measurement.timestamp.isAfter(latestByType[measurement.type]!.timestamp)) {
-                      latestByType[measurement.type] = measurement;
+                    if (measurement.measuredAt.isAfter(latestByType[measurement.measurementType]!.measuredAt)) {
+                      latestByType[measurement.measurementType] = measurement;
                     }
                   }
                 }
                 
                 final latestList = latestByType.values.toList()
-                  ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                  ..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
                   
                 return Column(
                   children: latestList.map((measurement) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.monitor_weight_outlined, color: Colors.purple),
-                    title: Text('${measurement.value} ${measurement.unit}'),
-                    subtitle: Text('${measurement.type.name.toUpperCase()} • ${DateFormatter.formatDateTime(measurement.timestamp)}'),
+                    title: Text('${measurement.value1} ${measurement.unit}'),
+                    subtitle: Text('${measurement.measurementType.name.toUpperCase()} • ${AppDateUtils.formatDateTime(measurement.measuredAt)}'),
                     onTap: () => context.push('/measurements'),
                   )).toList(),
                 );

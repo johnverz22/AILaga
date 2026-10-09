@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/utilities/date_utils.dart';
 import '../../../care_recipient/data/care_recipient_providers.dart';
 import '../../../medications/data/medication_providers.dart';
 import '../../../medications/domain/medication_entity.dart';
@@ -21,6 +21,7 @@ class DashboardMedicationSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final occurrencesAsync = ref.watch(todayOccurrencesProvider);
     final theme = Theme.of(context);
+    final recipient = ref.watch(primaryCareRecipientProvider).value;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -53,10 +54,29 @@ class DashboardMedicationSection extends ConsumerWidget {
                 
                 // Sort by time
                 final sorted = List<MedicationOccurrenceEntity>.from(occurrences)
-                  ..sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
+                  ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
                   
-                return Column(
-                  children: sorted.map((occ) => _MedicationItem(occurrence: occ)).toList(),
+                return Consumer(
+                  builder: (context, ref, child) {
+                    if (recipient == null) return const SizedBox.shrink();
+                    final schedulesAsync = ref.watch(activeSchedulesProvider(recipient.id));
+                    
+                    return schedulesAsync.when(
+                      data: (schedules) {
+                        final scheduleMap = {for (var s in schedules) s.id: s};
+                        
+                        return Column(
+                          children: sorted.map((occ) {
+                            final schedule = scheduleMap[occ.medicationScheduleId];
+                            final name = schedule?.medicationName ?? 'Unknown Medication';
+                            return _MedicationItem(occurrence: occ, medicationName: name);
+                          }).toList(),
+                        );
+                      },
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(child: Text('Error: $err')),
+                    );
+                  },
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -71,14 +91,15 @@ class DashboardMedicationSection extends ConsumerWidget {
 
 class _MedicationItem extends ConsumerWidget {
   final MedicationOccurrenceEntity occurrence;
+  final String medicationName;
   
-  const _MedicationItem({required this.occurrence});
+  const _MedicationItem({required this.occurrence, required this.medicationName});
   
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final isOverdue = occurrence.status == MedicationStatus.pending && 
-                     occurrence.scheduledTime.isBefore(now);
+                     occurrence.scheduledAt.isBefore(now);
                      
     Color statusColor;
     IconData statusIcon;
@@ -92,6 +113,10 @@ class _MedicationItem extends ConsumerWidget {
         statusColor = Colors.orange;
         statusIcon = Icons.cancel;
         break;
+      case MedicationStatus.notConfirmed:
+        statusColor = Colors.amber;
+        statusIcon = Icons.help_outline;
+        break;
       case MedicationStatus.pending:
       default:
         statusColor = isOverdue ? Colors.red : Colors.grey;
@@ -103,14 +128,14 @@ class _MedicationItem extends ConsumerWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(statusIcon, color: statusColor),
       title: Text(
-        occurrence.medicationName,
+        medicationName,
         style: TextStyle(
           color: isOverdue ? Colors.red : null,
           fontWeight: isOverdue ? FontWeight.bold : null,
         ),
       ),
       subtitle: Text(
-        DateFormatter.formatTime(occurrence.scheduledTime),
+        AppDateUtils.formatTime(occurrence.scheduledAt),
         style: TextStyle(
           color: isOverdue ? Colors.red : null,
         ),
@@ -139,7 +164,7 @@ class _MedicationItem extends ConsumerWidget {
               occurrence.status.name.toUpperCase(),
               style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
             ),
-      onTap: () => context.push('/medications/${occurrence.scheduleId}'),
+      onTap: () => context.push('/medications/${occurrence.medicationScheduleId}'),
     );
   }
 }
