@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix Record functionality: microphone permission is never requested (only checked) in VoiceCaptureService.start(), causing the first recording attempt to silently fail. Fix Ask functionality: FlutterGemma.initialize(...) is called lazily inside GemmaLiteRtEngine.ensureLoaded() instead of in main(), causing async init races; also fix the model re-install loop where .install() is called on every post-idle ensureLoaded() call.",
+  "status": "completed",
+  "steps": [
+    "Read lib/services/ai/local/capture/voice_capture_service.dart. In start(), change the permission check from hasPermission() (check-only) to: first call AudioRecorder().hasPermission(); if false, call Permission.microphone.request() from permission_handler; if still denied after request, throw AiUnavailable('Microphone permission denied'). Add import 'package:permission_handler/permission_handler.dart'; at the top.",
+    "Read lib/main.dart. Add `await FlutterGemma.initialize(inferenceEngines: [LiteRtLmEngine()])` after `WidgetsFlutterBinding.ensureInitialized()` and before `runApp(...)`. Wrap in try/catch (ignore error — NullEngine handles the fallback). Add the necessary imports: `import 'package:flutter_gemma/flutter_gemma.dart';` and `import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';`.",
+    "Read lib/services/ai/local/engines/gemma_litert_engine.dart. In ensureLoaded(): (a) remove the FlutterGemma.initialize(...) call (now in main()); (b) add a separate bool _modelInstalled flag; only call FlutterGemma.installModel(...).fromFile(modelPath).install() when _modelInstalled is false AND !FlutterGemma.hasActiveModel(); set _modelInstalled = true after a successful install. This prevents re-installing after every idle unload.",
+    "Run `dart analyze lib/` — confirm 0 issues. Run `dart test` — confirm all tests pass."
+  ],
+  "acceptance_criteria": [
+    "dart analyze lib/ returns 0 issues",
+    "dart test passes all existing tests (including test/services/ai/local/ask/ask_agent_test.dart and test/services/ai/local/engine_lifecycle_test.dart)",
+    "On device (manual): tap Record on first install → OS microphone permission dialog appears → grant → recording starts and the mic icon turns red",
+    "On device (manual): second recording attempt after granting permission starts immediately without re-showing the dialog",
+    "On device (manual, no model): Ask 'What was the last BP?' → deterministic answer displayed (not 'Something went wrong')",
+    "On device (manual, model installed): Ask query receives an AI-generated answer after model loads"
+  ],
+  "verification": [
+    "dart analyze lib/",
+    "dart test test/services/ai/local/",
+    "dart test test/features/capture/"
+  ],
+  "blocked_reason": null,
+  "findings": "1. `dart test` (standalone) fails on this project because package:test is not a direct dev_dependency; the project uses flutter_test. Use `flutter test --no-pub` instead. 2. The `flutter_gemma_litertlm` import was unused in gemma_litert_engine.dart after removing the FlutterGemma.initialize call — removed to keep analyze clean. 3. test/features/capture/review_flow_test.dart: 1 test ('capture -> review -> confirm writes records') fails with 'Asset shaders/ink_sparkle.frag not found' — this is a pre-existing Windows environment issue with Flutter Impeller shader assets in widget tests; completely unrelated to FEAT-001 changes. All 13 ask_agent tests pass, all 5 engine_lifecycle tests pass, all 9 confirm_proposals tests pass. 4. FEAT-002 (snap_capture_screen.dart fixes) should note: the `flutter_gemma_litertlm` import is now only in main.dart, not in gemma_litert_engine.dart. 5. FlutterGemma.initialize try/catch in main.dart silently ignores failures — NullEngine/DeviceProbe handles the fallback, which is correct behavior."
+}

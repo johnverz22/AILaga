@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 
 import '../local_ai_engine.dart';
 import '../proposals/proposal_models.dart';
@@ -25,7 +24,7 @@ class GemmaLiteRtEngine implements LocalAiEngine {
   InferenceModel? _model;
   DateTime _lastUsed = DateTime.fromMillisecondsSinceEpoch(0);
   bool _degraded = false;
-  bool _initialized = false;
+  bool _modelInstalled = false;
   Future<void> _inflight = Future.value();
 
   GemmaLiteRtEngine({
@@ -43,15 +42,14 @@ class GemmaLiteRtEngine implements LocalAiEngine {
   @override
   Future<void> ensureLoaded() async {
     if (_model != null) return;
-    if (!_initialized) {
-      await FlutterGemma.initialize(inferenceEngines: [LiteRtLmEngine()]);
-      _initialized = true;
-    }
-    if (!FlutterGemma.hasActiveModel()) {
+    if (!_modelInstalled && !FlutterGemma.hasActiveModel()) {
       await FlutterGemma.installModel(
         modelType: ModelType.gemma4,
         fileType: ModelFileType.litertlm,
       ).fromFile(modelPath).install();
+      _modelInstalled = true;
+    } else {
+      _modelInstalled = true; // model was already registered
     }
     _model = await FlutterGemma.getActiveModel(
       maxTokens: 2048,
@@ -94,8 +92,7 @@ class GemmaLiteRtEngine implements LocalAiEngine {
   }
 
   @override
-  Stream<ExtractionEvent> extractFromText(
-      String text, ExtractionContext ctx) {
+  Stream<ExtractionEvent> extractFromText(String text, ExtractionContext ctx) {
     return _extract(text: text, ctx: ctx);
   }
 
@@ -152,7 +149,8 @@ class GemmaLiteRtEngine implements LocalAiEngine {
     for (final r in records) {
       yield ProposalEmitted(r);
     }
-    yield ExtractionComplete(modelId: modelId, latencyMs: sw.elapsedMilliseconds);
+    yield ExtractionComplete(
+        modelId: modelId, latencyMs: sw.elapsedMilliseconds);
     _touch();
   }
 
@@ -263,8 +261,8 @@ class GemmaLiteRtEngine implements LocalAiEngine {
             maxOutputTokens: 384,
           );
           try {
-            await session.addQueryChunk(
-                Message.text(text: conversation, isUser: true));
+            await session
+                .addQueryChunk(Message.text(text: conversation, isUser: true));
             return await session.getResponse();
           } finally {
             await session.close();
@@ -290,7 +288,6 @@ class GemmaLiteRtEngine implements LocalAiEngine {
       yield AskFailed(e.toString());
     }
   }
-
 }
 
 class _InferenceOut {

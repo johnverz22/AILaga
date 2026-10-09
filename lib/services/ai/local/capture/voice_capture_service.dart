@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 import '../local_ai_engine.dart';
@@ -32,8 +33,15 @@ class VoiceCaptureService {
   Duration get elapsed =>
       _startedAt == null ? Duration.zero : DateTime.now().difference(_startedAt!);
 
-  /// Mic permission — caller shows the explanation sheet first (H15).
-  Future<bool> ensurePermission() => _recorder.hasPermission();
+  /// Mic permission — checks and, if not yet granted, requests it.
+  /// Returns true only when the permission is definitively granted.
+  Future<bool> ensurePermission() async {
+    // First check via the record package (lightweight, no OS dialog).
+    if (await _recorder.hasPermission()) return true;
+    // Not granted — request via permission_handler to trigger the OS dialog.
+    final status = await Permission.microphone.request();
+    return status.isGranted;
+  }
 
   /// Starts recording. Returns the future clip path. Throws [AiUnavailable]
   /// when permission is denied so the UI can drop to typed text.
