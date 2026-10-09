@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'core/database/database_provider.dart';
+import 'core/errors/error_handler.dart';
 import 'core/notifications/notification_provider.dart';
 
 void main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    
+
+    // Offline-first, no crashlytics: persist uncaught errors to an
+    // on-device log file so they can be pulled for debugging.
+    await ErrorHandler.init();
+
     // Set up global error handling
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
-      // TODO: Log error to a file or crashlytics
-      debugPrint('Flutter Error: ${details.exception}');
+      ErrorHandler.recordFlutterError(details);
     };
 
     // We can pre-initialize services by creating a ProviderContainer, 
@@ -34,6 +38,6 @@ void main() async {
       ),
     );
   }, (error, stack) {
-    debugPrint('Async Error: $error');
+    ErrorHandler.recordError(error, stack);
   });
 }

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_bar_actions.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../capture/presentation/widgets/pending_proposals_strip.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
-import '../../capture/presentation/widgets/on_device_badge.dart';
 import 'widgets/dashboard_tasks_section.dart';
 import 'widgets/dashboard_medication_section.dart';
 import 'widgets/dashboard_appointment_section.dart';
@@ -19,9 +19,10 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const OnDeviceBadge(),
-        leadingWidth: 160,
+        centerTitle: false,
+        titleSpacing: 16,
         title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             recipientAsync.when(
               data: (recipient) =>
@@ -50,6 +51,7 @@ class HomeScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: const [
+                PendingProposalsStrip(),
                 DashboardTasksSection(),
                 DashboardMedicationSection(),
                 DashboardAppointmentSection(),

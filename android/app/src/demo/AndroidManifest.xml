@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- S6: the demo build must prove the app works with no network at
+         all. Removing INTERNET here makes any accidental network call
+         fail fast instead of silently succeeding. The helper model is
+         side-loaded (adb push), not downloaded, in this flavor. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
+</manifest>

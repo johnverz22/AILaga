@@ -11,15 +11,19 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 /// Add or edit a medication schedule.
 ///
 /// Expects route extra to be a String `recipientId` when adding,
-/// or a Map `{recipientId, scheduleId}` when editing.
+/// or a Map `{recipientId, scheduleId}` when editing. The map may also
+/// carry `initialValues` to pre-fill the add form — used by the AI
+/// review tray's Edit path (spec §5: forms are the edit path).
 class AddMedicationScreen extends ConsumerStatefulWidget {
   final String recipientId;
   final String? scheduleId;
+  final Map<String, dynamic>? initialValues;
 
   const AddMedicationScreen({
     super.key,
     required this.recipientId,
     this.scheduleId,
+    this.initialValues,
   });
 
   @override
@@ -43,7 +47,35 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     super.initState();
     if (widget.scheduleId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadExisting());
+    } else if (widget.initialValues != null) {
+      final init = widget.initialValues!;
+      if (init['medicationName'] != null) {
+        _nameCtrl.text = init['medicationName'] as String;
+      }
+      if (init['instructions'] != null) {
+        _instructionsCtrl.text = init['instructions'] as String;
+      }
+      if (init['timesHhmm'] is List) {
+        final parsed = (init['timesHhmm'] as List)
+            .whereType<String>()
+            .map(_parseHhmm)
+            .whereType<TimeOfDay>()
+            .toList();
+        if (parsed.isNotEmpty) {
+          parsed.sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute));
+          _scheduleTimes = parsed;
+        }
+      }
     }
+  }
+
+  static TimeOfDay? _parseHhmm(String s) {
+    final parts = s.split(':');
+    if (parts.length != 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
   }
 
   Future<void> _loadExisting() async {
@@ -175,7 +207,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           _startDate.add(const Duration(days: 14)),
         );
       }
-      if (mounted) context.pop();
+      // Pop with `true` so callers (e.g. the AI review tray) can tell a
+      // record was actually saved, not just dismissed.
+      if (mounted) context.pop(true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

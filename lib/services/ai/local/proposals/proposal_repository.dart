@@ -35,7 +35,9 @@ class AiProposalEntity {
   final String payloadJson;
   final String? sourceQuote;
   final String? flag; // sure, check
-  final String status; // pending, confirmed, discarded
+  /// pending, confirmed, discarded, edited (caregiver saved the record
+  /// manually through the add/edit form — excluded from confirmAll).
+  final String status;
   final DateTime createdAt;
 
   const AiProposalEntity({
@@ -115,6 +117,102 @@ class AiCaptureRepository {
       ..where((t) => t.captureId.equals(captureId) & t.status.equals('pending'));
     final rows = await query.get();
     return rows.map(_rowToProposalEntity).toList();
+  }
+
+  /// Watches every pending proposal across all captures, oldest first —
+  /// feeds the "things to check" strip on the Ngayon dashboard so a
+  /// capture left unreviewed stays visible (spec C5).
+  Stream<List<AiProposalEntity>> watchPendingProposals() {
+    final query = _db.select(_db.aiProposals)
+      ..where((t) => t.status.equals('pending'))
+      ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]);
+    return query
+        .watch()
+        .map((rows) => rows.map(_rowToProposalEntity).toList());
+  }
+
+  Future<AiCaptureEntity?> getCapture(String captureId) async {
+    final row = await (_db.select(_db.aiCaptures)
+          ..where((t) => t.id.equals(captureId)))
+        .getSingleOrNull();
+    if (row == null) return null;
+    return AiCaptureEntity(
+      id: row.id,
+      careRecipientId: row.careRecipientId,
+      modality: row.modality,
+      originalText: row.originalText,
+      engineId: row.engineId,
+      modelId: row.modelId,
+      latencyMs: row.latencyMs,
+      createdAt: row.createdAt,
+    );
+  }
+
+  /// Rebuilds the typed [ProposedRecord] for a staged row — the inverse
+  /// of [_payloadFromRecord]. Returns null for unknown kinds or malformed
+  /// payloads; callers skip those rather than crash (defensive — rows are
+  /// written by us, but payloads are JSON).
+  ProposedRecord? recordFromEntity(AiProposalEntity entity) {
+    final flag = ProposalFlag.values
+        .where((f) => f.name == entity.flag)
+        .firstOrNull ?? ProposalFlag.sure;
+    try {
+      final p = jsonDecode(entity.payloadJson) as Map<String, dynamic>;
+      final quote = entity.sourceQuote ?? '';
+      switch (entity.kind) {
+        case 'medication_taken':
+          return ProposedMedicationTaken(
+            medicationName: p['medicationName'] as String,
+            timePhrase: p['timePhrase'] as String?,
+            sourceQuote: quote,
+            flag: flag,
+          );
+        case 'medication_skipped':
+          return ProposedMedicationSkipped(
+            medicationName: p['medicationName'] as String,
+            reasonText: p['reasonText'] as String?,
+            sourceQuote: quote,
+            flag: flag,
+          );
+        case 'measurement':
+          return ProposedMeasurement(
+            type: p['type'] as String,
+            value1: p['value1'] as num,
+            value2: p['value2'] as num?,
+            unit: p['unit'] as String,
+            timePhrase: p['timePhrase'] as String?,
+            sourceQuote: quote,
+            flag: flag,
+          );
+        case 'care_note':
+          return ProposedCareNote(
+            text: p['text'] as String,
+            timePhrase: p['timePhrase'] as String?,
+            sourceQuote: quote,
+            flag: flag,
+          );
+        case 'appointment':
+          return ProposedAppointment(
+            provider: p['provider'] as String?,
+            purpose: p['purpose'] as String?,
+            datetimePhrase: p['datetimePhrase'] as String,
+            sourceQuote: quote,
+            flag: flag,
+          );
+        case 'medication_schedule':
+          return ProposedMedicationSchedule(
+            name: p['name'] as String,
+            strength: p['strength'] as String?,
+            instructionText: p['instructionText'] as String?,
+            timesHhmm: (p['timesHhmm'] as List?)?.cast<String>(),
+            sourceQuote: quote,
+            flag: flag,
+          );
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
   }
 
   Future<List<AiProposalEntity>> getAllProposalsForCapture(String captureId) async {

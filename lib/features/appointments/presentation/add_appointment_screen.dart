@@ -8,15 +8,18 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 /// Add or edit an appointment.
 ///
-/// Route extra: String recipientId (add) or Map {recipientId, appointmentId} (edit).
+/// Route extra: String recipientId (add) or Map {recipientId,
+/// appointmentId, initialValues} (edit / AI review-tray pre-fill).
 class AddAppointmentScreen extends ConsumerStatefulWidget {
   final String recipientId;
   final String? appointmentId;
+  final Map<String, dynamic>? initialValues;
 
   const AddAppointmentScreen({
     super.key,
     required this.recipientId,
     this.appointmentId,
+    this.initialValues,
   });
 
   @override
@@ -39,6 +42,14 @@ class _AddAppointmentScreenState
     super.initState();
     if (widget.appointmentId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadExisting());
+    } else if (widget.initialValues != null) {
+      final init = widget.initialValues!;
+      if (init['provider'] != null) {
+        _providerCtrl.text = init['provider'] as String;
+      }
+      if (init['purpose'] != null) {
+        _purposeCtrl.text = init['purpose'] as String;
+      }
     }
   }
 
@@ -123,7 +134,9 @@ class _AddAppointmentScreenState
           updatedAt: now,
         ));
       }
-      if (mounted) context.pop();
+      // Pop with `true` so callers (e.g. the AI review tray) can tell a
+      // record was actually saved, not just dismissed.
+      if (mounted) context.pop(true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../app/app_bar_actions.dart';
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/capture/snap_service.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
@@ -47,21 +47,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Take a photo'),
-        actions: [
-          // SOS stays in the app bar on every screen (spec §4.2).
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.error,
-                foregroundColor: theme.colorScheme.onError,
-              ),
-              onPressed: () => context.push('/emergency'),
-              icon: const Icon(Symbols.sos_rounded, size: 18),
-              label: const Text('SOS'),
-            ),
-          ),
-        ],
+        actions: const [SosAppBarButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -91,9 +77,15 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: SizedBox(
-                    height: 72,
+                    height: 80,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
+                        // Compact padding — the theme's 14dp vertical
+                        // padding starves the icon+label column.
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 4),
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         backgroundColor: selected
                             ? theme.colorScheme.primaryContainer
                             : null,
@@ -110,7 +102,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                         children: [
                           Icon(icon),
                           const SizedBox(height: 4),
-                          Text(label, style: const TextStyle(fontSize: 13)),
+                          Text(label, style: const TextStyle(fontSize: 15)),
                         ],
                       ),
                     ),

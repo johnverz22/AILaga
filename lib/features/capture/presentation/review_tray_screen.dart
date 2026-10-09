@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../services/ai/local/proposals/proposal_models.dart';
 import '../../../services/ai/local/proposals/proposal_repository.dart';
+import '../../../features/medications/data/medication_providers.dart';
 import '../data/capture_providers.dart';
 import 'widgets/proposal_card.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
@@ -98,7 +100,7 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
                       return ProposalCard(
                         record: staged.record,
                         onDiscard: () => _discardAt(index),
-                        onEdit: () => _editAt(index, context),
+                        onEdit: () => _editAt(index),
                       );
                     },
                   ),
@@ -155,18 +157,95 @@ class _ReviewTrayScreenState extends ConsumerState<ReviewTrayScreen> {
     }
   }
 
-  void _editAt(int index, BuildContext context) {
-    final record = _proposals[index].record;
-    // Navigate to existing edit forms based on record type
+  /// Edit opens A's existing add form pre-filled (spec §5 — forms are the
+  /// edit path; no new form code). When the form reports a save, the
+  /// staged proposal is marked `edited` and leaves the tray so
+  /// "Confirm all" can't write a second record for it.
+  ///
+  /// Medication taken/skipped is the exception: the form only creates
+  /// the missing *schedule*, not the status. The proposal stays pending
+  /// so "Confirm all" can still mark the new schedule's occurrence.
+  Future<void> _editAt(int index) async {
+    final staged = _proposals[index];
+    final record = staged.record;
+    bool? saved;
+
     if (record is ProposedMeasurement) {
-      // Could push to add_measurement with prefilled values
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Edit in measurement form')),
-      );
-    } else if (record is ProposedMedicationTaken || record is ProposedMedicationSkipped) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Edit in medication form')),
-      );
+      saved = await context.push<bool>('/measurements/add', extra: {
+        'recipientId': widget.careRecipientId,
+        'initialValues': {
+          'type': record.type,
+          'value1': record.value1,
+          'value2': record.value2,
+          'unit': record.unit,
+        },
+      });
+    } else if (record is ProposedMedicationTaken ||
+        record is ProposedMedicationSkipped) {
+      final name = record is ProposedMedicationTaken
+          ? record.medicationName
+          : (record as ProposedMedicationSkipped).medicationName;
+      // The form is only the corrective path for an UNSCHEDULED drug
+      // (spec §5.5: add the medication first, then confirm marks its
+      // occurrence). For a scheduled med, saving here would create a
+      // duplicate schedule — and duplicate dose reminders.
+      final schedules = await ref
+          .read(medicationRepositoryProvider)
+          .getActiveSchedules(widget.careRecipientId);
+      if (!mounted) return;
+      final listed = schedules.any(
+          (s) => s.medicationName.toLowerCase() == name.toLowerCase());
+      if (listed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Already listed. Tap Confirm to save.')),
+        );
+        return;
+      }
+      await context.push<bool>('/medications/add', extra: {
+        'recipientId': widget.careRecipientId,
+        'initialValues': {'medicationName': name},
+      });
+      return; // stays pending — see doc comment
+    } else if (record is ProposedMedicationSchedule) {
+      saved = await context.push<bool>('/medications/add', extra: {
+        'recipientId': widget.careRecipientId,
+        'initialValues': {
+          'medicationName': record.name,
+          'instructions': record.instructionText,
+          'timesHhmm': record.timesHhmm,
+        },
+      });
+    } else if (record is ProposedCareNote) {
+      saved = await context.push<bool>('/care-notes/add', extra: {
+        'recipientId': widget.careRecipientId,
+        'initialValues': {'text': record.text},
+      });
+    } else if (record is ProposedAppointment) {
+      saved = await context.push<bool>('/appointments/add', extra: {
+        'recipientId': widget.careRecipientId,
+        'initialValues': {
+          'provider': record.provider,
+          'purpose': record.purpose,
+        },
+      });
+    }
+
+    if (saved != true || !mounted) return;
+    // Persist BEFORE the card disappears — same rule as discard.
+    try {
+      await ref
+          .read(aiCaptureRepositoryProvider)
+          .updateProposalStatus(staged.proposalId, 'edited');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update: $e')),
+        );
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() => _proposals.removeAt(index));
     }
   }
 

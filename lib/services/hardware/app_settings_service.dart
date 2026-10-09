@@ -15,6 +15,10 @@ class AppSettingsService {
   static const keyShakeSos = 'hw_shake_sos';
   static const keyFallDetection = 'hw_fall_detection';
 
+  /// AI capture: keep voice recordings on device after extraction
+  /// instead of deleting them (spec C8 "Keep recordings").
+  static const keyKeepRecordings = 'ai_keep_recordings';
+
   Future<String?> get(String key) async {
     final row = await (_db.select(_db.appSettings)
           ..where((t) => t.key.equals(key)))
@@ -59,4 +63,12 @@ final fallDetectionEnabledProvider = FutureProvider<bool>((ref) {
   return ref
       .watch(appSettingsServiceProvider)
       .getBool(AppSettingsService.keyFallDetection);
+});
+
+/// Whether voice captures are kept on device after extraction.
+/// Default: off — recordings are deleted once processed (privacy-first).
+final keepRecordingsProvider = FutureProvider<bool>((ref) {
+  return ref
+      .watch(appSettingsServiceProvider)
+      .getBool(AppSettingsService.keyKeepRecordings);
 });

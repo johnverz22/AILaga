@@ -86,9 +86,9 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 #### C5 Review tray UI ☁
 **Files:** `lib/features/capture/presentation/review_tray_screen.dart`, `widgets/proposal_card.dart`
 - [x] Heard-text header, card per proposal, **Sure/Check** badge, quote line, Edit/✕, "Kumpirmahin lahat"
-- [ ] **Edit** opens A's existing form pre-filled (route + extra args; no new form code) — currently a placeholder snackbar
+- [x] **Edit** opens A's existing form pre-filled (route + extra args; no new form code) — all proposal kinds wired; saved edits mark the proposal `edited`, med taken/skipped stays pending so confirmAll can still mark the new schedule's occurrence
 - [x] Rejected values show reason and can't be confirmed until edited — Check badge + confirm gate refuses to write out-of-range/unsupported proposals; they stay pending for edit/discard (audit fix F2/F4/F22)
-- [ ] Pending-proposals strip pinned at top of Ngayon (B)
+- [x] Pending-proposals strip pinned at top of Ngayon — `PendingProposalsStrip` watches `watchPendingProposals` and opens the tray per pending capture
 - [x] Semantics labels, ≥ 48 dp targets, icon + text (not color-only)
 **Accept:** widget tests with `ScriptedEngine` fixtures — `test/features/capture/review_flow_test.dart` covers confirm/discard on a real in-memory DB; golden screenshots not done.
 
@@ -115,10 +115,10 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 
 #### C8 Voice capture UI 📱
 **Files:** `capture/voice_capture_service.dart`, `lib/features/capture/presentation/voice_capture_screen.dart`, capture sheet
-- [x] Tap-to-record (not hold-to-talk yet), 16 kHz mono WAV via `record`, **hard stop at 30 s** auto-submits — ring countdown UI not done
+- [x] Tap-to-record (not hold-to-talk yet), 16 kHz mono WAV via `record`, **hard stop at 30 s** auto-submits — countdown ring + seconds-left shown while recording (service `onHardStop` drives the stop)
 - [x] Mic permission flow; denial/error → typed text path stays available
-- [~] States: listening → thinking → cards — transcript deltas are collected but not streamed live to the UI
-- [~] Audio deleted after extraction — implemented always-delete; "Keep recordings" setting not added
+- [x] States: listening → thinking → cards — transcript deltas stream live into the "Processing…" view
+- [x] Audio deleted after extraction — "Keep recordings" toggle in Phone helper settings (`ai_keep_recordings`); default off = delete
 **Accept:** end-to-end on device in airplane mode — **not yet run.**
 
 ---
@@ -137,7 +137,7 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 **Files:** `proof/traffic_proof_channel.dart`, Kotlin `MainActivity` channel, `lib/features/settings/…/ai_privacy_panel.dart`
 - [x] App-bar badge: "On-device" + airplane/offline state (connectivity read, no network calls)
 - [x] Panel: model, runtime, tier, real UID tx/rx byte counters via `TrafficProofChannel` (Kotlin `traffic` channel implemented; accuracy **pending S5** — panel shows "Not measurable" off-platform, never a fabricated number)
-- [ ] `demo` flavor without INTERNET if S6 passes — not added yet
+- [~] `demo` flavor without INTERNET — added (`flutter build apk --release --flavor demo`; merged manifest verified INTERNET-free). Still needs S6 on-device run to confirm the model loads via `adb push`
 **Accept:** badge flips with airplane mode; byte counter never fabricated.
 
 ---
@@ -164,7 +164,7 @@ Record results in `docs/SPIKE_RESULTS.md` (pass/fail + numbers). **Do not claim 
 ### Phase C5 — Hardening & demo (Hours 21–24)
 
 #### C14 Tests ☁
-- [x] Full-flow widget test: review → confirm → records persisted (`review_flow_test.dart`, in-memory Drift DB); capture-screen pump with `ScriptedEngine` not yet covered
+- [x] Full-flow widget test: review → confirm → records persisted (`review_flow_test.dart`, in-memory Drift DB); capture-screen pump with `ScriptedEngine` covered (`voice_capture_screen_test.dart` — also caught the Process button never re-enabling after typing)
 - [x] Verifier adversarial suite (`narration_verifier_test.dart`: invented IDs, >40% dropped, advice phrasings, engine-error fallback); MedMatcher/TimeResolver/validator tables exist (~15 cases, target ≥ 40); confirm idempotency + discard + provenance (`confirm_proposals_test.dart`)
 - [x] Offline/Basic-mode tests: `ask_agent_test.dart` covers NullEngine deterministic answers, engine timeout, refusal; `basic_text_extractor_test.dart` covers model-free extraction
 

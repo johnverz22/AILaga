@@ -13,6 +13,13 @@ final aiCaptureRepositoryProvider = Provider<AiCaptureRepository>((ref) {
   return AiCaptureRepository(db);
 });
 
+/// All pending AI proposals across captures, oldest first — drives the
+/// "things to check" strip on the Ngayon dashboard (spec C5).
+final pendingProposalsProvider =
+    StreamProvider<List<AiProposalEntity>>((ref) {
+  return ref.watch(aiCaptureRepositoryProvider).watchPendingProposals();
+});
+
 /// Provider for the confirm-proposals use case.
 /// Requires a careRecipientId — passed as a family arg.
 final confirmProposalsProvider = Provider.family<ConfirmProposalsUseCase, String>(

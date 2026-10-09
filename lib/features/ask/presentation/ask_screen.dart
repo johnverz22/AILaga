@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/app_bar_actions.dart';
 import '../../../services/ai/local/ai_providers.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
-import '../../capture/presentation/widgets/on_device_badge.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import '../data/ask_providers.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
@@ -50,8 +49,7 @@ class _AskScreenState extends ConsumerState<AskScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const OnDeviceBadge(),
-        leadingWidth: 160,
+        // Auto back button (pushed page — no bottom nav here).
         title: const Text('Ask'),
         actions: const [SosAppBarButton()],
       ),

@@ -18,8 +18,13 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 /// All values show range-validation errors inline (NOT silent correction).
 class AddMeasurementScreen extends ConsumerStatefulWidget {
   final String recipientId;
+  final Map<String, dynamic>? initialValues;
 
-  const AddMeasurementScreen({super.key, required this.recipientId});
+  const AddMeasurementScreen({
+    super.key,
+    required this.recipientId,
+    this.initialValues,
+  });
 
   @override
   ConsumerState<AddMeasurementScreen> createState() =>
@@ -46,6 +51,28 @@ class _AddMeasurementScreenState
     MeasurementType.weight: ['kg', 'lbs'],
     MeasurementType.bloodGlucose: ['mg/dL', 'mmol/L'],
   };
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialValues != null) {
+      final init = widget.initialValues!;
+      if (init['type'] != null) {
+        _type = MeasurementType.fromDatabaseValue(init['type'] as String);
+      }
+      if (init['unit'] != null) {
+        _unit = init['unit'] as String;
+      } else {
+        _unit = _unitOptions[_type]!.first;
+      }
+      if (init['value1'] != null) {
+        _value1Ctrl.text = init['value1'].toString();
+      }
+      if (init['value2'] != null) {
+        _value2Ctrl.text = init['value2'].toString();
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -144,7 +171,9 @@ class _AddMeasurementScreenState
         createdAt: now,
         updatedAt: now,
       ));
-      if (mounted) context.pop();
+      // Pop with `true` so callers (e.g. the AI review tray) can tell a
+      // record was actually saved, not just dismissed.
+      if (mounted) context.pop(true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

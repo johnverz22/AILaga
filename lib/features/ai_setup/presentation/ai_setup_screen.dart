@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/model/device_probe.dart';
 import '../../../services/ai/local/model/model_manager.dart';
+import '../../../services/hardware/app_settings_service.dart';
+import '../../care_recipient/data/care_recipient_providers.dart';
 import '../data/ai_setup_providers.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -22,25 +24,62 @@ class AiSetupScreen extends ConsumerWidget {
 
     final status = ref.watch(modelStatusProvider);
     final tier = ref.watch(tierDecisionProvider);
+    final name = ref
+            .watch(primaryCareRecipientProvider)
+            .valueOrNull
+            ?.displayName ??
+        'your loved one';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Phone helper')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: status.when(
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Center(child: Text('Something went wrong')),
-            data: (s) => _buildBody(context, ref, s, tier),
+          child: Column(
+            children: [
+              Expanded(
+                child: status.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, __) =>
+                      const Center(child: Text('Something went wrong')),
+                  data: (s) => _buildBody(context, ref, s, tier, name),
+                ),
+              ),
+              _keepRecordingsTile(context, ref),
+            ],
           ),
         ),
       ),
     );
   }
 
+  /// "Keep recordings" toggle (spec C8). Off by default — clips are
+  /// deleted right after extraction. Shown on this screen because the
+  /// setting only matters when the helper can listen.
+  Widget _keepRecordingsTile(BuildContext context, WidgetRef ref) {
+    final keep = ref.watch(keepRecordingsProvider).valueOrNull ?? false;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: SwitchListTile(
+        secondary: const Icon(Symbols.mic_rounded, size: 28),
+        title: const Text('Keep recordings', style: TextStyle(fontSize: 18)),
+        subtitle: const Text(
+          'Voice clips stay on this phone. Off = deleted after use.',
+        ),
+        value: keep,
+        onChanged: (v) async {
+          await ref
+              .read(appSettingsServiceProvider)
+              .setBool(AppSettingsService.keyKeepRecordings, v);
+          ref.invalidate(keepRecordingsProvider);
+        },
+      ),
+    );
+  }
+
   Widget _buildBody(BuildContext context, WidgetRef ref, ModelStatus status,
-      AsyncValue<TierDecision> tier) {
+      AsyncValue<TierDecision> tier, String name) {
     switch (status.state) {
       case ModelInstallState.downloading:
       case ModelInstallState.verifying:
@@ -64,7 +103,7 @@ class AiSetupScreen extends ConsumerWidget {
         ]);
       case ModelInstallState.paused:
       case ModelInstallState.notInstalled:
-        return _introView(context, ref, status, tier);
+        return _introView(context, ref, status, tier, name);
     }
   }
 
@@ -98,7 +137,7 @@ class AiSetupScreen extends ConsumerWidget {
   }
 
   Widget _introView(BuildContext context, WidgetRef ref, ModelStatus status,
-      AsyncValue<TierDecision> tier) {
+      AsyncValue<TierDecision> tier, String name) {
     final decision = tier.valueOrNull;
     final unsupported = decision != null && decision.tier == AiTier.basic;
     return Column(
@@ -110,7 +149,7 @@ class AiSetupScreen extends ConsumerWidget {
         const SizedBox(height: 24),
         _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
         _infoRow(Symbols.flight_rounded, 'Works offline'),
-        _infoRow(Symbols.mic_none_rounded, 'Hears Lola'),
+        _infoRow(Symbols.mic_none_rounded, 'Hears $name'),
         const Spacer(),
         if (status.state == ModelInstallState.paused)
           Padding(
@@ -210,24 +249,38 @@ class AiSetupScreen extends ConsumerWidget {
   /// download. Honest wording — says what to do, never blames.
   Widget _iosScaffold(BuildContext context, WidgetRef ref) {
     final avail = ref.watch(appleAiAvailabilityProvider);
+    final name = ref
+            .watch(primaryCareRecipientProvider)
+            .valueOrNull
+            ?.displayName ??
+        'your loved one';
     return Scaffold(
       appBar: AppBar(title: const Text('Phone helper')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: avail.when(
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
-            error: (_, __) => _iosBody(context, false, 'channel_error'),
-            data: (a) =>
-                _iosBody(context, a['available'] == true, '${a['reason']}'),
+          child: Column(
+            children: [
+              Expanded(
+                child: avail.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, __) =>
+                      _iosBody(context, false, 'channel_error', name),
+                  data: (a) => _iosBody(context,
+                      a['available'] == true, '${a['reason']}', name),
+                ),
+              ),
+              _keepRecordingsTile(context, ref),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _iosBody(BuildContext context, bool available, String reason) {
+  Widget _iosBody(
+      BuildContext context, bool available, String reason, String name) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -245,7 +298,7 @@ class AiSetupScreen extends ConsumerWidget {
         if (available) ...[
           _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
           _infoRow(Symbols.flight_rounded, 'Works offline'),
-          _infoRow(Symbols.mic_none_rounded, 'Hears Lola'),
+          _infoRow(Symbols.mic_none_rounded, 'Hears $name'),
         ] else ...[
           _infoRow(Symbols.settings_rounded, _iosReasonText(reason)),
           _infoRow(Symbols.keyboard_alt_rounded,

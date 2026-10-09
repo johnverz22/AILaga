@@ -4,6 +4,8 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
+import 'migrations.dart';
+
 part 'app_database.g.dart';
 
 @DataClassName('CareRecipient')
@@ -230,44 +232,10 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 2;
 
+  // Migration logic lives in migrations.dart — add a `from < N` step
+  // there whenever schemaVersion is bumped.
   @override
-  MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          // Indexes for common lookups (performance).
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_med_occ_scheduled_at '
-            'ON medication_occurrences (scheduled_at)',
-          );
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_med_occ_schedule_id '
-            'ON medication_occurrences (medication_schedule_id)',
-          );
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_measurement_measured_at '
-            'ON measurement_logs (measured_at)',
-          );
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_appointments_scheduled_at '
-            'ON appointments (scheduled_at)',
-          );
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_care_notes_observed_at '
-            'ON care_notes (observed_at)',
-          );
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.addColumn(medicationOccurrences, medicationOccurrences.statusSource);
-            await m.createTable(aiCaptures);
-            await m.createTable(aiProposals);
-          }
-        },
-        beforeOpen: (details) async {
-          // Enforce foreign key constraints.
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-      );
+  MigrationStrategy get migration => appMigrationStrategy(this);
 }
 
 QueryExecutor _openConnection() {

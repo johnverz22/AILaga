@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import '../../../app/app_bar_actions.dart';
 import '../../../services/ai/local/capture/voice_capture_service.dart';
 import '../../../services/ai/local/local_ai_engine.dart';
 import '../../../services/ai/local/ai_providers.dart';
+import '../../../services/hardware/app_settings_service.dart';
 import '../../../services/ai/local/proposals/proposal_models.dart';
 import '../../../services/ai/local/proposals/proposal_repository.dart';
 import '../../../services/ai/local/proposals/proposal_validator.dart';
@@ -16,7 +16,6 @@ import '../../../services/ai/local/proposals/basic_text_extractor.dart';
 import '../../../features/medications/data/medication_providers.dart';
 import '../../../features/care_recipient/data/care_recipient_providers.dart';
 import '../data/capture_providers.dart';
-import 'widgets/on_device_badge.dart';
 import 'review_tray_screen.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -30,19 +29,36 @@ class VoiceCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
-  static const _recordLimit = Duration(seconds: 30);
+  static const _recordLimit = VoiceCaptureService.maxDuration;
 
   final _textController = TextEditingController();
   final _voiceService = VoiceCaptureService();
-  Timer? _recordTimer;
+  Timer? _ticker;
+  StreamSubscription<void>? _hardStopSub;
+  Duration _recordElapsed = Duration.zero;
   bool _isRecording = false;
   bool _isProcessing = false;
   String? _transcript;
   List<ProposedRecord> _proposals = [];
 
   @override
+  void initState() {
+    super.initState();
+    // The service owns the 30 s ceiling — it fires once here so the
+    // recording auto-submits (spec C8).
+    _hardStopSub = _voiceService.onHardStop
+        .listen((_) => _stopRecordingAndProcess());
+    // Rebuild on text changes so the Process button enables/disables
+    // live — without this it stays in its first-build state.
+    _textController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
-    _recordTimer?.cancel();
+    _ticker?.cancel();
+    _hardStopSub?.cancel();
     _voiceService.dispose();
     _textController.dispose();
     super.dispose();
@@ -55,8 +71,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const OnDeviceBadge(),
-        leadingWidth: 160,
+        // Auto back button (pushed page — no bottom nav here).
         title: const Text('Record'),
         actions: const [SosAppBarButton()],
       ),
@@ -113,14 +128,6 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
             // Action buttons
             if (!_isProcessing && _proposals.isEmpty)
               _buildActionButtons(theme),
-
-            // Snap (photo capture) entry — icon + label, never icon-only
-            if (!_isProcessing && _proposals.isEmpty)
-              TextButton.icon(
-                onPressed: () => context.push('/capture/snap'),
-                icon: const Icon(Symbols.photo_camera_rounded),
-                label: const Text('Take a photo (prescription, label, monitor)'),
-              ),
           ],
         ),
       ),
@@ -141,17 +148,44 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
   }
 
   Widget _buildCaptureInput(ThemeData theme) {
+    final msLeft = (_recordLimit - _recordElapsed).inMilliseconds
+        .clamp(0, _recordLimit.inMilliseconds);
+    final secondsLeft = (msLeft / 1000).ceil();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          _isRecording ? Symbols.mic_rounded : Symbols.mic_none_rounded,
-          size: 80,
-          color: _isRecording ? theme.colorScheme.error : theme.colorScheme.primary,
-        ),
+        if (_isRecording)
+          // Countdown ring: shrinks toward the 30 s hard stop so the
+          // limit is visible, not a surprise.
+          SizedBox(
+            width: 96,
+            height: 96,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox.expand(
+                  child: CircularProgressIndicator(
+                    value: msLeft / _recordLimit.inMilliseconds,
+                    strokeWidth: 6,
+                    color: theme.colorScheme.error,
+                    backgroundColor:
+                        theme.colorScheme.error.withValues(alpha: 0.15),
+                  ),
+                ),
+                Icon(Symbols.mic_rounded,
+                    size: 44, color: theme.colorScheme.error),
+              ],
+            ),
+          )
+        else
+          Icon(
+            Symbols.mic_none_rounded,
+            size: 80,
+            color: theme.colorScheme.primary,
+          ),
         const SizedBox(height: 24),
         Text(
-          _isRecording ? 'Listening…' : 'Record or type',
+          _isRecording ? 'Listening… ${secondsLeft}s' : 'Record or type',
           style: theme.textTheme.headlineSmall,
         ),
         const SizedBox(height: 32),
@@ -160,7 +194,8 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
           controller: _textController,
           maxLines: 4,
           decoration: InputDecoration(
-            hintText: 'Example: "Lola took Metformin, BP 130/80"',
+            hintText:
+                'Example: "${_recipientName()} took Metformin, BP 130/80"',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -231,31 +266,48 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
   }
 
   Widget _buildActionButtons(ThemeData theme) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Record button — disabled in Basic mode (text is the input there)
-        Expanded(
-          child: SizedBox(
-            height: 56,
-            child: OutlinedButton.icon(
-              onPressed: _isBasicTier ? null : _toggleRecording,
-              icon: Icon(_isRecording ? Symbols.stop_rounded : Symbols.mic_rounded),
-              label: Text(_isRecording ? 'Stop' : 'Record'),
+        Row(
+          children: [
+            // Record button — disabled in Basic mode (text is the input there)
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: _isBasicTier ? null : _toggleRecording,
+                  icon: Icon(_isRecording
+                      ? Symbols.stop_rounded
+                      : Symbols.mic_rounded),
+                  label: Text(_isRecording ? 'Stop' : 'Record'),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
+            // Snap (photo capture) — beside Record, icon + word
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/capture/snap'),
+                  icon: const Icon(Symbols.photo_camera_rounded),
+                  label: const Text('Photo'),
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        // Process text button
-        Expanded(
-          child: SizedBox(
-            height: 56,
-            child: FilledButton.icon(
-              onPressed: _textController.text.trim().isEmpty && !_isRecording
-                  ? null
-                  : _processInput,
-              icon: const Icon(Symbols.send_rounded),
-              label: const Text('Process'),
-            ),
+        const SizedBox(height: 12),
+        // Process — full-width primary action at the very bottom
+        SizedBox(
+          height: 64,
+          child: FilledButton.icon(
+            onPressed: _textController.text.trim().isEmpty && !_isRecording
+                ? null
+                : _processInput,
+            icon: const Icon(Symbols.send_rounded),
+            label: const Text('Process'),
           ),
         ),
       ],
@@ -264,6 +316,12 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
   bool get _isBasicTier =>
       ref.read(aiTierProvider).valueOrNull == AiTier.basic;
+
+  /// Care recipient's name for example text — falls back to a neutral
+  /// placeholder if the profile is still loading.
+  String _recipientName() =>
+      ref.watch(primaryCareRecipientProvider).valueOrNull?.displayName ??
+      'Mom';
 
   Future<void> _toggleRecording() async {
     if (!_isRecording) {
@@ -278,9 +336,17 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
         }
         return;
       }
-      setState(() => _isRecording = true);
-      // Hard stop at 30 s — auto-submits, per spec.
-      _recordTimer = Timer(_recordLimit, _stopRecordingAndProcess);
+      setState(() {
+        _isRecording = true;
+        _recordElapsed = Duration.zero;
+      });
+      // UI ticker for the countdown ring — the actual hard stop is the
+      // service's onHardStop (single source of truth for the 30 s limit).
+      _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        if (mounted) {
+          setState(() => _recordElapsed = _voiceService.elapsed);
+        }
+      });
     } else {
       await _stopRecordingAndProcess();
     }
@@ -288,9 +354,13 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
   Future<void> _stopRecordingAndProcess() async {
     if (!_isRecording) return;
-    _recordTimer?.cancel();
+    _ticker?.cancel();
+    _ticker = null;
     final clip = await _voiceService.stop();
-    setState(() => _isRecording = false);
+    setState(() {
+      _isRecording = false;
+      _recordElapsed = Duration.zero;
+    });
     if (clip == null) return;
     await _processAudio(clip);
   }
@@ -326,6 +396,10 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
         switch (event) {
           case TranscriptUpdated(:final text):
             transcriptBuf.write(text);
+            // Stream transcript deltas live into the "Processing" view.
+            if (mounted) {
+              setState(() => _transcript = transcriptBuf.toString());
+            }
           case ProposalEmitted(:final record):
             proposals.add(record);
           case ExtractionFailed(:final reason):
@@ -336,11 +410,20 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       }
       sw.stop();
 
-      // Audio is discarded after extraction unless the user chose to keep it.
+      // Audio is discarded after extraction unless the user turned on
+      // "Keep recordings" in Phone helper settings (spec C8). The read is
+      // guarded so the clip is still deleted if the screen was left
+      // mid-extraction — privacy must not depend on the UI staying open.
       if (clip is WavAudioClip) {
+        var keep = false;
         try {
-          await File(clip.path).delete();
+          keep = ref.read(keepRecordingsProvider).valueOrNull ?? false;
         } catch (_) {}
+        if (!keep) {
+          try {
+            await _voiceService.discard(clip);
+          } catch (_) {}
+        }
       }
 
       final transcript = transcriptBuf.toString().trim();

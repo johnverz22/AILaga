@@ -7,7 +7,6 @@ import '../../../app/app_bar_actions.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/notifications/notification_provider.dart';
 import '../../../services/hardware/app_settings_service.dart';
-import '../../capture/presentation/widgets/on_device_badge.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -21,8 +20,6 @@ class SettingsScreen extends ConsumerWidget {
     final recipient = ref.watch(primaryCareRecipientProvider).valueOrNull;
     return Scaffold(
       appBar: AppBar(
-        leading: const OnDeviceBadge(),
-        leadingWidth: 160,
         title: const Text('Settings'),
         centerTitle: true,
         actions: const [SosAppBarButton()],

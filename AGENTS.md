@@ -15,6 +15,8 @@ flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # after changing Drift tables
 flutter analyze                                            # must be clean (0 issues)
 flutter test                                               # must pass
+flutter run --flavor app                                   # flavors exist: "app" (default) and
+flutter build apk --flavor demo                            #   "demo" (no INTERNET permission, S6)
 ```
 Generated files (`*.g.dart`) are produced by build_runner — never edit by hand.
 

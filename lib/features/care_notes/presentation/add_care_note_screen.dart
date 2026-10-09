@@ -9,8 +9,13 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 class AddCareNoteScreen extends ConsumerStatefulWidget {
   final String recipientId;
+  final Map<String, dynamic>? initialValues;
 
-  const AddCareNoteScreen({super.key, required this.recipientId});
+  const AddCareNoteScreen({
+    super.key,
+    required this.recipientId,
+    this.initialValues,
+  });
 
   @override
   ConsumerState<AddCareNoteScreen> createState() => _AddCareNoteScreenState();
@@ -21,6 +26,14 @@ class _AddCareNoteScreenState extends ConsumerState<AddCareNoteScreen> {
   final _textCtrl = TextEditingController();
   DateTime _observedAt = DateTime.now();
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialValues?['text'] != null) {
+      _textCtrl.text = widget.initialValues!['text'] as String;
+    }
+  }
 
   @override
   void dispose() {
@@ -66,7 +79,9 @@ class _AddCareNoteScreenState extends ConsumerState<AddCareNoteScreen> {
         createdAt: now,
         updatedAt: now,
       ));
-      if (mounted) context.pop();
+      // Pop with `true` so callers (e.g. the AI review tray) can tell a
+      // record was actually saved, not just dismissed.
+      if (mounted) context.pop(true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e')));

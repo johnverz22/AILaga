@@ -30,6 +30,21 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // S6: the "demo" flavor ships with no INTERNET permission (removed in
+    // src/demo/AndroidManifest.xml) to prove the app runs fully on-device.
+    // Day-to-day builds use the "app" flavor:
+    //   flutter run --flavor app
+    //   flutter build apk --flavor demo
+    flavorDimensions += "audience"
+    productFlavors {
+        create("app") {
+            dimension = "audience"
+        }
+        create("demo") {
+            dimension = "audience"
+        }
+    }
 }
 
 

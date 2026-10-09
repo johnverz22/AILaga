@@ -157,41 +157,6 @@ class CareBriefScreen extends ConsumerWidget {
                                 );
                               }).toList(),
                       ),
-
-                      // Full-day text summary — selectable for copying/sharing.
-                      Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0B6B6B).withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(Symbols.article_rounded,
-                                        color: Color(0xFF0B6B6B), size: 20),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text('Day Summary',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              SelectableText(brief.formattedText),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 );
@@ -240,12 +205,14 @@ class _DateSelectorRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Theme card colors — readable in both light and dark mode.
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD9D2C3), width: 1.5),
+        border: Border.all(color: cs.outline, width: 1.5),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Row(

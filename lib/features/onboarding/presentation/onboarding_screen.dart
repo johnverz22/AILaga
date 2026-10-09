@@ -224,9 +224,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildStep1Welcome() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
+    return _scrollableCenter(
+      Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Symbols.health_and_safety_rounded, size: 80, color: Colors.teal),
@@ -255,6 +254,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
+
+
 
   Widget _buildStep2CareRecipient() {
     return SingleChildScrollView(
@@ -377,9 +378,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildStep5Notifications() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
+    return _scrollableCenter(
+      Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Symbols.notifications_active_rounded, size: 80, color: Colors.teal),
@@ -415,9 +415,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildStep6Ready() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
+    return _scrollableCenter(
+      Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Symbols.check_circle_rounded, size: 80, color: Colors.green),
@@ -438,6 +437,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Centers [child] when it fits; scrolls instead of overflowing when
+  /// large text or a short screen squeezes the available height.
+  Widget _scrollableCenter(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - 48), // minus padding
+          child: IntrinsicHeight(child: child),
+        ),
       ),
     );
   }

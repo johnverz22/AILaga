@@ -46,8 +46,6 @@ class AppShell extends StatelessWidget {
 
     int getIndex() {
       if (location.startsWith('/brief') || location.startsWith('/handover')) return 1;
-      if (location.startsWith('/capture')) return 2;
-      if (location.startsWith('/ask')) return 3;
       if (location.startsWith('/medications') ||
           location.startsWith('/measurements') ||
           location.startsWith('/appointments') ||
@@ -69,9 +67,11 @@ class AppShell extends StatelessWidget {
         case 1:
           context.go('/brief');
         case 2:
-          context.go('/capture');
+          // Pushed, not a shell tab — full screen without the nav bar,
+          // back button returns to the last tab.
+          context.push('/capture');
         case 3:
-          context.go('/ask');
+          context.push('/ask');
         case 4:
           context.push('/settings');
       }
@@ -217,6 +217,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/emergency',
         builder: (context, state) => const EmergencyScreen(),
       ),
+      // Capture & Ask: full-screen pages WITHOUT the bottom nav — the
+      // action buttons / message box sit at the screen bottom and the
+      // app bar shows a back button. Reached via the Speak/Ask nav items.
+      GoRoute(
+        path: '/capture',
+        builder: (context, state) => const VoiceCaptureScreen(),
+      ),
+      GoRoute(
+        path: '/capture/snap',
+        builder: (context, state) => const SnapCaptureScreen(),
+      ),
+      GoRoute(
+        path: '/ask',
+        builder: (context, state) => const AskScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
@@ -233,20 +248,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/handover',
             builder: (context, state) => const HandoverScreen(),
-          ),
-          // Tab 2: Capture
-          GoRoute(
-            path: '/capture',
-            builder: (context, state) => const VoiceCaptureScreen(),
-          ),
-          GoRoute(
-            path: '/capture/snap',
-            builder: (context, state) => const SnapCaptureScreen(),
-          ),
-          // Tab 3: Tanong (Ask)
-          GoRoute(
-            path: '/ask',
-            builder: (context, state) => const AskScreen(),
           ),
           // Higit pa (More) sub-routes — kept in shell
           GoRoute(
@@ -306,17 +307,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra;
           String recipientId;
           String? scheduleId;
+          Map<String, dynamic>? initialValues;
           if (extra is String) {
             recipientId = extra;
           } else if (extra is Map) {
             recipientId = extra['recipientId'] as String;
             scheduleId = extra['scheduleId'] as String?;
+            initialValues = extra['initialValues'] as Map<String, dynamic>?;
           } else {
             recipientId = '';
           }
           return AddMedicationScreen(
             recipientId: recipientId,
             scheduleId: scheduleId,
+            initialValues: initialValues,
           );
         },
       ),
@@ -329,9 +333,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/measurements/add',
         builder: (context, state) {
-          final recipientId =
-              state.extra is String ? state.extra as String : '';
-          return AddMeasurementScreen(recipientId: recipientId);
+          final extra = state.extra;
+          String recipientId = '';
+          Map<String, dynamic>? initialValues;
+          if (extra is String) {
+            recipientId = extra;
+          } else if (extra is Map) {
+            recipientId = extra['recipientId'] as String? ?? '';
+            initialValues = extra['initialValues'] as Map<String, dynamic>?;
+          }
+          return AddMeasurementScreen(
+            recipientId: recipientId,
+            initialValues: initialValues,
+          );
         },
       ),
       GoRoute(
@@ -348,24 +362,37 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra;
           String recipientId = '';
           String? appointmentId;
+          Map<String, dynamic>? initialValues;
           if (extra is String) {
             recipientId = extra;
           } else if (extra is Map) {
             recipientId = extra['recipientId'] as String;
             appointmentId = extra['appointmentId'] as String?;
+            initialValues = extra['initialValues'] as Map<String, dynamic>?;
           }
           return AddAppointmentScreen(
             recipientId: recipientId,
             appointmentId: appointmentId,
+            initialValues: initialValues,
           );
         },
       ),
       GoRoute(
         path: '/care-notes/add',
         builder: (context, state) {
-          final recipientId =
-              state.extra is String ? state.extra as String : '';
-          return AddCareNoteScreen(recipientId: recipientId);
+          final extra = state.extra;
+          String recipientId = '';
+          Map<String, dynamic>? initialValues;
+          if (extra is String) {
+            recipientId = extra;
+          } else if (extra is Map) {
+            recipientId = extra['recipientId'] as String? ?? '';
+            initialValues = extra['initialValues'] as Map<String, dynamic>?;
+          }
+          return AddCareNoteScreen(
+            recipientId: recipientId,
+            initialValues: initialValues,
+          );
         },
       ),
       GoRoute(
