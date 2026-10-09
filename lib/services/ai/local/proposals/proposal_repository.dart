@@ -55,6 +55,11 @@ class AiCaptureRepository {
   final AppDatabase _db;
   const AiCaptureRepository(this._db);
 
+  /// Runs [action] in one database transaction. Used by the confirm use
+  /// case so confirming a capture is atomic (spec C4: one transaction).
+  Future<T> runInTransaction<T>(Future<T> Function() action) =>
+      _db.transaction(action);
+
   Future<String> createCapture({
     required String careRecipientId,
     required String modality,

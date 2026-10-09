@@ -167,6 +167,82 @@ void main() {
     });
   });
 
+  group('safety gates (never write bad data)', () {
+    test(
+        'unscheduled medication is NOT confirmed — proposal stays pending '
+        '(spec §5.5: no "taken" for an unscheduled drug)', () async {
+      // No schedule seeded for this drug.
+      final captureId = await seedCapture([
+        ProposedMedicationTaken(
+          medicationName: 'Vitamin C',
+          sourceQuote: 'uminom ng vitamin c',
+          flag: ProposalFlag.check,
+        ),
+      ]);
+
+      final created = await useCase.confirmAll(captureId);
+      expect(created, 0);
+
+      final pending = await captureRepo.getPendingProposals(captureId);
+      expect(pending.length, 1, reason: 'must stay visible, not silently confirmed');
+    });
+
+    test(
+        'out-of-range measurement is NEVER persisted on confirm '
+        '(invariant 4: flag, do not write)', () async {
+      final now = DateTime.now();
+      final captureId = await seedCapture([
+        ProposedMeasurement(
+          type: 'blood_pressure',
+          value1: 1300, // out of 50–300 range
+          value2: 85,
+          unit: 'mmHg',
+          sourceQuote: 'BP 1300/85',
+          flag: ProposalFlag.check,
+        ),
+      ]);
+
+      final created = await useCase.confirmAll(captureId);
+      expect(created, 0);
+
+      final rows = await measurementRepo.getForDateRange(
+        recipientId,
+        now.subtract(const Duration(days: 1)),
+        now.add(const Duration(days: 1)),
+      );
+      expect(rows, isEmpty, reason: '1300 mmHg must never reach the table');
+
+      final pending = await captureRepo.getPendingProposals(captureId);
+      expect(pending.length, 1, reason: 'stays pending until edited');
+    });
+
+    test('no pending occurrence today → taken proposal stays pending',
+        () async {
+      final now = DateTime.now();
+      // Schedule exists but no occurrence row for today.
+      await db.into(db.medicationSchedules).insert(
+          MedicationSchedulesCompanion.insert(
+            id: 'ms-2',
+            careRecipientId: recipientId,
+            medicationName: 'Losartan',
+            scheduleTimes: '["08:00"]',
+            startDate: now,
+            createdAt: now,
+            updatedAt: now,
+          ));
+      final captureId = await seedCapture([
+        ProposedMedicationTaken(
+          medicationName: 'Losartan',
+          sourceQuote: 'uminom ng losartan',
+        ),
+      ]);
+
+      expect(await useCase.confirmAll(captureId), 0);
+      final pending = await captureRepo.getPendingProposals(captureId);
+      expect(pending.length, 1);
+    });
+  });
+
   group('discard', () {
     test('discarded proposal is not confirmed later', () async {
       await db.into(db.medicationSchedules).insert(
