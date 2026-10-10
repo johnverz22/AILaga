@@ -26,11 +26,13 @@ import '../features/settings/presentation/health_connect_screen.dart';
 import 'sos_sensor_guard.dart';
 import '../features/ai_setup/presentation/ai_setup_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
+import '../features/onboarding/presentation/splash_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/capture/presentation/voice_capture_screen.dart';
 import '../features/capture/presentation/snap_capture_screen.dart';
 import '../features/ask/presentation/ask_screen.dart';
-import '../features/care_recipient/data/care_recipient_providers.dart';
+import '../features/onboarding/presentation/initialization_screen.dart';
+import 'app_ready_provider.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 // Shell Navigation Widget — redesigned per AILaga v2 spec §4.2
@@ -188,27 +190,45 @@ class _ModernNavBar extends StatelessWidget {
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     redirect: (context, state) async {
-      // Async wait for the care recipient to resolve if it's loading
-      final careRecipientAsync = ref.read(primaryCareRecipientProvider);
+      final path = state.uri.path;
 
-      // If we don't have a care recipient and are not on onboarding, redirect to onboarding
-      final isGoingToOnboarding = state.uri.path == '/onboarding';
-
-      // If it's loaded and empty, force onboarding
-      if (careRecipientAsync.hasValue && careRecipientAsync.value == null) {
-        if (!isGoingToOnboarding) return '/onboarding';
+      // These routes are always passthrough — never redirect away from them.
+      if (path == '/splash' ||
+          path == '/initialization' ||
+          path == '/onboarding' ||
+          path == '/emergency') {
+        return null;
       }
 
-      // If it's loaded and present, prevent going to onboarding
-      if (careRecipientAsync.hasValue && careRecipientAsync.value != null) {
-        if (isGoingToOnboarding) return '/';
-      }
+      // Read the combined readiness state (care recipient + device + model).
+      final ready = await ref.read(appReadyProvider.future);
 
-      return null; // no redirect
+      switch (ready) {
+        case AppReadyState.needsOnboarding:
+          return '/onboarding';
+
+        case AppReadyState.needsModelSetup:
+          // Model not yet installed on a supported device — gate until done.
+          return '/initialization';
+
+        case AppReadyState.unsupportedDevice:
+        case AppReadyState.modelReady:
+          // Proceed normally. Prevent going back to onboarding if set up.
+          if (path == '/onboarding') return '/';
+          return null;
+      }
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/initialization',
+        builder: (context, state) => const InitializationScreen(),
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),

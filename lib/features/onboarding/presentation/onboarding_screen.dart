@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/utilities/uuid_generator.dart';
+import '../../../services/demo/demo_data_service.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import '../../care_recipient/domain/care_recipient_entity.dart';
 import '../../family_contacts/data/family_contact_providers.dart';
@@ -180,6 +181,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  /// One-tap demo: seeds the B22 dataset and lands on the initialization
+  /// screen so the Phone helper setup check runs even for demo users.
+  Future<void> _loadDemoData() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(demoDataServiceProvider).seedIfEmpty();
+      if (mounted) context.go('/initialization');
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load demo data.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _requestNotificationPermission() async {
     final status = await Permission.notification.request();
     if (status.isGranted || status.isDenied || status.isPermanentlyDenied) {
@@ -188,11 +207,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _completeOnboarding() {
-    context.go('/');
+    // Go to the initialization screen so the user is prompted to download
+    // the Phone helper right after setting up their profile. The
+    // InitializationScreen handles unsupported devices gracefully and
+    // provides "Try later" if they want to skip for now.
+    context.go('/initialization');
+  }
+
+  void _goToPage(int page) {
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    const teal = Color(0xFF0B6B6B);
+    // Slide 0 (brand welcome) and 5 (ready) have their own CTA buttons;
+    // slides 1–4 are forms / permission with inline actions.
+    final showSlideChrome = _currentPage == 0 || _currentPage == 5;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -200,12 +235,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             // Progress Indicator
             LinearProgressIndicator(
               value: (_currentPage + 1) / 6,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: const Color(0xFFF3EFE6),
+              color: teal,
+              minHeight: 8,
             ),
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
+                // Swipeable slides; form input survives swipes (controllers kept).
                 onPageChanged: (page) => setState(() => _currentPage = page),
                 children: [
                   _buildStep1Welcome(),
@@ -217,38 +254,179 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ],
               ),
             ),
+            if (showSlideChrome) _buildSlideFooter(teal),
           ],
         ),
       ),
     );
   }
 
+  /// Dots + Skip/Next chrome for the brand slides (0 and 5).
+  /// Form slides keep their own Continue/Skip buttons.
+  Widget _buildSlideFooter(Color teal) {
+    final isLast = _currentPage == 5;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      child: Row(
+        children: [
+          // Dots — shrink-wrapped so buttons always fit on narrow screens.
+          Semantics(
+            label: 'Step ${_currentPage + 1} of 6',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(6, (i) {
+                final active = i == _currentPage;
+                return GestureDetector(
+                  onTap: () {
+                    // Only allow free dot-jumping on the brand slides;
+                    // the profile form (slide 1) must be completed in order.
+                    if (_currentPage == 0 || _currentPage == 5) {
+                      _goToPage(i);
+                    }
+                  },
+                  child: Container(
+                    width: active ? 24 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(right: 6),
+                    decoration: BoxDecoration(
+                      color: active ? teal : const Color(0xFFD9D2C3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          // Flexible spacer — pushes buttons to the right but can compress
+          // to zero on very narrow screens so buttons never overflow.
+          const Spacer(),
+          TextButton(
+            // Slide 0 has no profile yet — Skip advances to the form.
+            // (Finishing here would just bounce back via the router guard.)
+            onPressed: isLast ? _completeOnboarding : () => _goToPage(1),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            child: const Text('Skip'),
+          ),
+          const SizedBox(width: 4),
+          FilledButton(
+            onPressed: () => _goToPage(isLast ? 5 : 1),
+            style: FilledButton.styleFrom(
+              backgroundColor: teal,
+              minimumSize: const Size(0, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+            ),
+            child: Text(isLast ? 'Done' : 'Next'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStep1Welcome() {
+    const teal = Color(0xFF0B6B6B);
+    const indigo = Color(0xFF2F4B8A);
     return _scrollableCenter(
       Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Symbols.health_and_safety_rounded, size: 80, color: Colors.teal),
-          const SizedBox(height: 24),
-          Text('Welcome to AILaga', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 8),
-          const Text('Your personal caregiving assistant', textAlign: TextAlign.center),
-          const SizedBox(height: 48),
-          _buildInfoBox(
-            icon: Symbols.privacy_tip_rounded,
-            title: 'Privacy First',
-            description: 'Your data stays on this device. No account needed. No internet required.',
+          // Brand hero — app mark in a warm card with teal ring.
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3EFE6),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: const Color(0xFFD9D2C3), width: 2),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: teal, width: 3),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/branding/app_mark.png',
+                      width: 140,
+                      height: 140,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Symbols.health_and_safety_rounded,
+                        size: 80,
+                        color: teal,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Care for Lola',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(color: const Color(0xFF1A1A1A))),
+                const SizedBox(height: 8),
+                const Text(
+                  'Talk. We write it down.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Symbols.flight_rounded, size: 20, color: teal),
+                    SizedBox(width: 6),
+                    Text('Works with no internet.',
+                        style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           _buildInfoBox(
-            icon: Symbols.warning_rounded,
-            title: 'Safety Notice',
-            description: 'AILaga is not a medical device or diagnostic tool.',
+            icon: Symbols.shield_rounded,
+            iconColor: teal,
+            title: 'Stays on this phone',
+            description:
+                'No account needed. Your family data never leaves this device.',
+          ),
+          const SizedBox(height: 12),
+          _buildInfoBox(
+            icon: Symbols.favorite_rounded,
+            iconColor: indigo,
+            title: 'You confirm every record',
+            description:
+                'Nothing is saved until a person taps Confirm.',
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'AILaga is not a medical device.',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const Spacer(),
-          ElevatedButton(
-            onPressed: _nextPage,
-            child: const Text('Get Started'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _nextPage,
+              icon: const Icon(Symbols.check_rounded),
+              label: const Text('Get Started'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(64),
+                textStyle: const TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Instant demo — seeds sample data and skips the wizard.
+          TextButton.icon(
+            onPressed: _isLoading ? null : _loadDemoData,
+            icon: const Icon(Symbols.play_circle_rounded),
+            label: const Text('Try a demo'),
           ),
         ],
       ),
@@ -457,25 +635,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildInfoBox({required IconData icon, required String title, required String description}) {
+  Widget _buildInfoBox(
+      {required IconData icon,
+      required String title,
+      required String description,
+      Color iconColor = const Color(0xFF0B6B6B)}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        color: const Color(0xFFF3EFE6),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFD9D2C3), width: 2),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.teal),
+          Icon(icon, color: iconColor, size: 32),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 const SizedBox(height: 4),
-                Text(description, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                Text(description, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 16)),
               ],
             ),
           ),

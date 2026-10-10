@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ailaga (app)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--flavor",
+        "app"
+      ]
+    },
+    {
+      "name": "ailaga (demo)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--flavor",
+        "demo"
+      ]
+    }
+  ]
+}

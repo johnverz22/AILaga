@@ -2,12 +2,40 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma/flutter_gemma.dart' as fg;
 
 import '../local_ai_engine.dart';
 import '../proposals/proposal_models.dart';
 import '../ask/ask_tools.dart';
 import 'model_output.dart';
+
+// ---------------------------------------------------------------------------
+// Backend selection
+// ---------------------------------------------------------------------------
+
+/// Which hardware backend LiteRT-LM should prefer.
+///
+/// LiteRT-LM tries the preferred backend first and silently falls back to
+/// CPU when the hardware or driver is unavailable — so choosing [gpu] on a
+/// device without an OpenCL-capable GPU is safe; it just runs on CPU.
+///
+/// | Backend | Android              | iOS       | Notes                        |
+/// |---------|----------------------|-----------|------------------------------|
+/// | cpu     | XNNPack / 4 threads  | XNNPack   | Always works                 |
+/// | gpu     | OpenCL (Adreno/Mali) | Metal     | Default — ~7× faster prefill |
+/// | npu     | Qualcomm QNN (HTP)   | ❌        | SM8750 / QCS8275 only        |
+///
+/// [npu] requires the NPU-compiled `.litertlm` file (sm8750 / qcs8275) AND
+/// `qualcomm_npu: true` in the `flutter_gemma_litertlm` build hooks.  On any
+/// other device the runtime falls back to CPU gracefully.
+///
+/// Use [gpu] unless you specifically have a Qualcomm Snapdragon device and
+/// the matching NPU model file.
+enum AiPreferredBackend { cpu, gpu, npu }
+
+// ---------------------------------------------------------------------------
+// Engine
+// ---------------------------------------------------------------------------
 
 /// Gemma via LiteRT-LM (flutter_gemma + flutter_gemma_litertlm).
 ///
@@ -15,13 +43,31 @@ import 'model_output.dart';
 /// time, OOM/failure → degrade the session to Basic (never crash the app).
 /// All model output is parsed into proposals — validation and persistence
 /// stay outside this class.
+///
+/// Backend selection:
+/// Pass [preferredBackend] to request GPU (OpenCL) or NPU (Qualcomm QNN)
+/// inference.  The runtime silently falls back to CPU when the requested
+/// backend is unavailable, so this is always safe.  The default is [gpu]
+/// which is the best choice for virtually all modern Android phones:
+///   - Adreno (Qualcomm), Mali (MediaTek), Exynos GPU → OpenCL
+///   - Benchmarks (S26 Ultra): GPU prefill 3 808 tok/s vs 557 tok/s on CPU,
+///     GPU also uses only 676 MB vs 1 733 MB CPU memory (litert-community)
+///
+/// [npu] is only beneficial when the model file is the NPU-compiled Qualcomm
+/// variant (sm8750 / qcs8275) AND the build opts in with `qualcomm_npu: true`.
 class GemmaLiteRtEngine implements LocalAiEngine {
   /// Path of the installed model file (from ModelManager).
   final String modelPath;
   final String modelId;
   final AiTier deviceTier;
 
-  InferenceModel? _model;
+  /// Requested inference backend.
+  ///
+  /// Defaults to [AiPreferredBackend.gpu].  The LiteRT-LM runtime silently
+  /// falls back to CPU if the GPU/NPU backend is unavailable.
+  final AiPreferredBackend preferredBackend;
+
+  fg.InferenceModel? _model;
   DateTime _lastUsed = DateTime.fromMillisecondsSinceEpoch(0);
   bool _degraded = false;
   bool _modelInstalled = false;
@@ -31,6 +77,7 @@ class GemmaLiteRtEngine implements LocalAiEngine {
     required this.modelPath,
     this.modelId = 'gemma4-e2b',
     this.deviceTier = AiTier.full,
+    this.preferredBackend = AiPreferredBackend.gpu,
   });
 
   @override
@@ -39,22 +86,38 @@ class GemmaLiteRtEngine implements LocalAiEngine {
   @override
   Future<AiTier> tier() async => _degraded ? AiTier.basic : deviceTier;
 
+  // Converts our local enum to flutter_gemma's PreferredBackend.
+  static fg.PreferredBackend _toFgBackend(AiPreferredBackend b) {
+    switch (b) {
+      case AiPreferredBackend.cpu:
+        return fg.PreferredBackend.cpu;
+      case AiPreferredBackend.gpu:
+        return fg.PreferredBackend.gpu;
+      case AiPreferredBackend.npu:
+        return fg.PreferredBackend.npu;
+    }
+  }
+
   @override
   Future<void> ensureLoaded() async {
     if (_model != null) return;
-    if (!_modelInstalled && !FlutterGemma.hasActiveModel()) {
-      await FlutterGemma.installModel(
-        modelType: ModelType.gemma4,
-        fileType: ModelFileType.litertlm,
+    if (!_modelInstalled && !fg.FlutterGemma.hasActiveModel()) {
+      await fg.FlutterGemma.installModel(
+        modelType: fg.ModelType.gemma4,
+        fileType: fg.ModelFileType.litertlm,
       ).fromFile(modelPath).install();
       _modelInstalled = true;
     } else {
       _modelInstalled = true; // model was already registered
     }
-    _model = await FlutterGemma.getActiveModel(
+    // Pass the preferred backend so LiteRT-LM enables GPU (OpenCL / Metal) or
+    // NPU (Qualcomm QNN) inference.  The runtime falls back to CPU silently
+    // when the accelerator is unavailable — this call is always safe.
+    _model = await fg.FlutterGemma.getActiveModel(
       maxTokens: 2048,
       supportImage: true,
       supportAudio: true,
+      preferredBackend: _toFgBackend(preferredBackend),
     );
     _touch();
   }
@@ -175,18 +238,18 @@ class GemmaLiteRtEngine implements LocalAiEngine {
     try {
       if (clip is WavAudioClip) {
         final bytes = await File(clip.path).readAsBytes();
-        await session.addQueryChunk(Message.withAudio(
+        await session.addQueryChunk(fg.Message.withAudio(
           text: extractionInstruction(ctx, intent: intent),
           audioBytes: bytes,
         ));
       } else if (image is FileImageInput) {
         final bytes = await File(image.path).readAsBytes();
-        await session.addQueryChunk(Message.withImage(
+        await session.addQueryChunk(fg.Message.withImage(
           text: extractionInstruction(ctx, intent: intent),
           imageBytes: bytes,
         ));
       } else {
-        await session.addQueryChunk(Message.text(
+        await session.addQueryChunk(fg.Message.text(
           text:
               '${extractionInstruction(ctx, intent: intent)}\n\nHeard text: "${text ?? ''}"',
           isUser: true,
@@ -222,7 +285,7 @@ class GemmaLiteRtEngine implements LocalAiEngine {
           final prompt = req.prompt ??
               'Summarize these care facts for ${req.audience} in ${req.language}.\n'
                   '${req.facts.join('\n')}';
-          await session.addQueryChunk(Message.text(text: prompt, isUser: true));
+          await session.addQueryChunk(fg.Message.text(text: prompt, isUser: true));
           _touch();
           return await session.getResponse();
         } finally {
@@ -261,8 +324,8 @@ class GemmaLiteRtEngine implements LocalAiEngine {
             maxOutputTokens: 384,
           );
           try {
-            await session
-                .addQueryChunk(Message.text(text: conversation, isUser: true));
+            await session.addQueryChunk(
+                fg.Message.text(text: conversation, isUser: true));
             return await session.getResponse();
           } finally {
             await session.close();

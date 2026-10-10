@@ -9,6 +9,7 @@ import 'widgets/dashboard_tasks_section.dart';
 import 'widgets/dashboard_medication_section.dart';
 import 'widgets/dashboard_appointment_section.dart';
 import 'widgets/dashboard_measurement_section.dart';
+import 'widgets/phone_helper_setup_banner.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -51,6 +52,7 @@ class HomeScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: const [
+                PhoneHelperSetupBanner(),
                 PendingProposalsStrip(),
                 DashboardTasksSection(),
                 DashboardMedicationSection(),

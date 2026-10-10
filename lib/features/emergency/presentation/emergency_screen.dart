@@ -16,8 +16,6 @@ class EmergencyScreen extends ConsumerStatefulWidget {
 }
 
 class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
-  static const _sosRed = Color(0xFFC62828);
-
   // Emergency services dial 911 (also shown in Settings → Emergency).
   final String _emergencyNumber = '911';
 
@@ -102,13 +100,14 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
     }
 
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final recipientAsync = ref.watch(primaryCareRecipientProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Emergency SOS',
-            style: TextStyle(color: _sosRed)),
-        backgroundColor: _sosRed.withValues(alpha: 0.08),
+        title: Text('Emergency SOS',
+            style: TextStyle(color: cs.error)),
+        backgroundColor: cs.error.withValues(alpha: 0.08),
       ),
       body: recipientAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -127,57 +126,55 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
-                  color: const Color(0xFFF3EFE6),
+                  color: cs.surfaceContainerHighest,
                   child: Text(
                     _statusFeedback!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: cs.onSurface, fontWeight: FontWeight.bold),
                   ),
                 ),
 
-              // Big SOS Button Area
-              Expanded(
-                flex: 4,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SosButton(
-                        onTrigger: () => _handleSosTrigger(recipient.id),
-                      ),
-                      const SizedBox(height: 12),
-                      // Who this SOS is for — the responder sees this.
-                      Text(
-                        recipient.displayName,
-                        style: theme.textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      if (recipient.emergencyInfo?.isNotEmpty == true)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 4),
-                          child: Text(
-                            recipient.emergencyInfo!,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium,
-                          ),
+              // Big SOS button — natural height; the contacts panel below
+              // fills the rest of the screen so there's no dead space.
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SosButton(
+                      onTrigger: () => _handleSosTrigger(recipient.id),
+                    ),
+                    const SizedBox(height: 12),
+                    // Who this SOS is for — the responder sees this.
+                    Text(
+                      recipient.displayName,
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    if (recipient.emergencyInfo?.isNotEmpty == true)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 4),
+                        child: Text(
+                          recipient.emergencyInfo!,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium,
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
 
               // Trusted Contacts Area
               Expanded(
-                flex: 5,
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF3EFE6),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
                     borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(24)),
+                        const BorderRadius.vertical(top: Radius.circular(24)),
                     border: Border(
-                      top: BorderSide(color: Color(0xFFD9D2C3), width: 2),
+                      top: BorderSide(color: cs.outline, width: 2),
                     ),
                   ),
                   child: Column(
@@ -223,19 +220,24 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
 
   /// One contact row: name + two big labeled buttons (icon + word).
   Widget _contactTile(FamilyContactEntity c) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // "Sure" green adapts: dark mode needs a lighter green on the dark panel.
+    final callColor =
+        isDark ? const Color(0xFF7CC98F) : const Color(0xFF1B7F3B);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: const Color(0xFF0B6B6B).withValues(alpha: 0.12),
+            backgroundColor: cs.primary.withValues(alpha: 0.15),
             child: Text(
               c.displayName.isNotEmpty
                   ? c.displayName.substring(0, 1).toUpperCase()
                   : '?',
-              style: const TextStyle(
-                  color: Color(0xFF0B6B6B), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: cs.primary, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 12),
@@ -244,24 +246,26 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(c.displayName,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 18)),
+                    style: TextStyle(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18)),
                 Text(c.relationship ?? 'Contact',
-                    style: const TextStyle(color: Color(0xFF5E5748))),
+                    style: TextStyle(color: cs.onSurfaceVariant)),
               ],
             ),
           ),
           _contactAction(
             icon: Symbols.phone_rounded,
             label: 'Call',
-            color: const Color(0xFF1B7F3B),
+            color: callColor,
             onTap: () => _callContact(c),
           ),
           const SizedBox(width: 8),
           _contactAction(
             icon: Symbols.message_rounded,
             label: 'Text',
-            color: const Color(0xFF2F4B8A),
+            color: cs.secondary,
             onTap: () => _smsContact(c),
           ),
         ],

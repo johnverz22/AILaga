@@ -20,10 +20,13 @@ void main() async {
     // — must be called before runApp, not lazily inside engine methods).
     // Wrap in try/catch: on simulators or platforms without LiteRT support the
     // call throws, but NullEngine handles the graceful fallback.
+    // Errors are logged to the on-device error file for debugging — they do
+    // NOT crash the app; the InitializationScreen surfaces them to the user.
     try {
       await FlutterGemma.initialize(inferenceEngines: [LiteRtLmEngine()]);
-    } catch (_) {
-      // Ignore — DeviceProbe / NullEngine provides the fallback path.
+    } catch (e, stack) {
+      ErrorHandler.recordError(e, stack);
+      // NullEngine provides the fallback path — app continues normally.
     }
 
     // Set up global error handling

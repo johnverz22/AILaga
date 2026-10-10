@@ -95,7 +95,10 @@ class AiSetupScreen extends ConsumerWidget {
           Text(_errorText(status.error), style: _body(context)),
           const SizedBox(height: 24),
           _primaryButton(context, 'Try again',
-              () => ref.read(modelManagerProvider).install()),
+              () async {
+                final mgr = await ref.read(modelManagerProvider.future);
+                await mgr.install();
+              }),
           TextButton(
             onPressed: () => Navigator.of(context).maybePop(),
             child: const Text('Not now'),
@@ -140,37 +143,47 @@ class AiSetupScreen extends ConsumerWidget {
       AsyncValue<TierDecision> tier, String name) {
     final decision = tier.valueOrNull;
     final unsupported = decision != null && decision.tier == AiTier.basic;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Icon(Symbols.phonelink_lock_rounded, size: 80, color: Color(0xFF0B6B6B)),
-        const SizedBox(height: 16),
-        Text('Phone helper', textAlign: TextAlign.center, style: _title(context)),
-        const SizedBox(height: 24),
-        _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
-        _infoRow(Symbols.flight_rounded, 'Works offline'),
-        _infoRow(Symbols.mic_none_rounded, 'Hears $name'),
-        const Spacer(),
-        if (status.state == ModelInstallState.paused)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text('Paused — ${_sizeLabel(status.sizeBytes)} so far',
-                textAlign: TextAlign.center, style: _body(context)),
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Symbols.phonelink_lock_rounded, size: 80, color: Color(0xFF0B6B6B)),
+              const SizedBox(height: 16),
+              Text('Phone helper', textAlign: TextAlign.center, style: _title(context)),
+              const SizedBox(height: 24),
+              _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
+              _infoRow(Symbols.flight_rounded, 'Works offline'),
+              _infoRow(Symbols.mic_none_rounded, 'Hears $name'),
+              const Spacer(),
+              if (status.state == ModelInstallState.paused)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text('Paused — ${_sizeLabel(status.sizeBytes)} so far',
+                      textAlign: TextAlign.center, style: _body(context)),
+                ),
+              if (unsupported)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(_basicReasonText(decision),
+                      textAlign: TextAlign.center, style: _body(context)),
+                ),
+              _primaryButton(
+                context,
+                status.state == ModelInstallState.paused ? 'Resume' : 'Get it',
+                unsupported ? null : () async {
+                  final mgr = await ref.read(modelManagerProvider.future);
+                  await mgr.install();
+                },
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: const Text('Done'),
+              ),
+            ],
           ),
-        if (unsupported)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(_basicReasonText(decision),
-                textAlign: TextAlign.center, style: _body(context)),
-          ),
-        _primaryButton(
-          context,
-          status.state == ModelInstallState.paused ? 'Resume' : 'Get it',
-          unsupported ? null : () => ref.read(modelManagerProvider).install(),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('Skip'),
         ),
       ],
     );
@@ -208,7 +221,10 @@ class AiSetupScreen extends ConsumerWidget {
         const SizedBox(height: 24),
         OutlinedButton.icon(
           style: _secondaryStyle(),
-          onPressed: () => ref.read(modelManagerProvider).pause(),
+          onPressed: () async {
+            final mgr = await ref.read(modelManagerProvider.future);
+            mgr.pause();
+          },
           icon: const Icon(Symbols.pause_rounded),
           label: const Text('Pause'),
         ),
@@ -234,7 +250,10 @@ class AiSetupScreen extends ConsumerWidget {
             foregroundColor:
                 const WidgetStatePropertyAll(Color(0xFFB3261E)),
           ),
-          onPressed: () => ref.read(modelManagerProvider).delete(),
+          onPressed: () async {
+            final mgr = await ref.read(modelManagerProvider.future);
+            await mgr.delete();
+          },
           icon: const Icon(Symbols.delete_rounded),
           label: const Text('Delete'),
         ),

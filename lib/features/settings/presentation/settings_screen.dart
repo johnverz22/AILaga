@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../app/app_bar_actions.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/notifications/notification_provider.dart';
+import '../../../services/demo/demo_data_service.dart';
 import '../../../services/hardware/app_settings_service.dart';
 import '../../care_recipient/data/care_recipient_providers.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
@@ -134,6 +135,14 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           _buildSectionHeader('Data'),
           ListTile(
+            leading: const Icon(Symbols.play_circle_rounded),
+            title: const Text('Load demo data'),
+            subtitle: const Text('Fill the app with sample records'),
+            onTap: recipient == null
+                ? () => _loadDemoData(context, ref)
+                : () => _showDemoConfirmation(context, ref),
+          ),
+          ListTile(
             leading: const Icon(Symbols.delete_forever_rounded,
                 color: Color(0xFFB3261E)),
             title: const Text('Delete all data',
@@ -224,6 +233,68 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Replace-with-demo confirmation — shown only when real data exists.
+  void _showDemoConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Load demo data?'),
+        content: const Text(
+          'This erases the current records and fills the app with sample '
+          'data for Lola Maria.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _replaceWithDemoData(context, ref);
+            },
+            child: const Text('Load demo'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Wipes current data then seeds the demo dataset.
+  Future<void> _replaceWithDemoData(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(notificationServiceProvider).cancelAllNotifications();
+      await ref.read(appDatabaseProvider).deleteAllData();
+      if (!context.mounted) return;
+      await _loadDemoData(context, ref);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load demo data.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadDemoData(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(demoDataServiceProvider).seed();
+      ref.invalidate(primaryCareRecipientProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Demo data loaded.')),
+        );
+        context.go('/');
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load demo data.')),
+        );
+      }
+    }
   }
 
   Future<void> _deleteAllData(BuildContext context, WidgetRef ref) async {

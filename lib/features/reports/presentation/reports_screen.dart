@@ -90,9 +90,13 @@ class _DateRangeSelector extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '${DateFormatter.formatDate(range.start)} - ${DateFormatter.formatDate(range.end)}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          // Expanded: long date ranges wrap to a second line instead of
+          // overflowing the row on narrow screens or large text.
+          Expanded(
+            child: Text(
+              '${DateFormatter.formatDate(range.start)} - ${DateFormatter.formatDate(range.end)}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
           ),
           TextButton(
             onPressed: () async {

@@ -21,12 +21,25 @@ class DeviceCapabilities {
   /// 'android' | 'ios' | null (unreported → treated as Android legacy).
   final String? platform;
 
+  /// SoC chipset identifier string as reported by the Kotlin channel.
+  ///
+  /// Android: `android.os.Build.SOC_MODEL` (API 31+, e.g. "SM8750" for
+  /// Snapdragon 8 Gen 4) combined with a hardware/model fallback for older
+  /// devices.  The value is lower-cased so callers can use `.contains()`.
+  ///
+  /// iOS: not reported (always null — the Apple Intelligence path does not
+  /// need chipset routing; the GPU and NPU are exposed via CoreML/Metal).
+  ///
+  /// Null means the probe failed or the platform did not report the field.
+  final String? socChipset;
+
   const DeviceCapabilities({
     this.ramMb,
     this.sdkInt,
     this.abis = const [],
     this.freeStorageBytes,
     this.platform,
+    this.socChipset,
   });
 
   static const DeviceCapabilities unknown = DeviceCapabilities();
@@ -54,8 +67,8 @@ class TierDecision {
 /// Signature of the raw platform probe (injectable for tests).
 typedef PlatformDeviceInfo = Future<Map<Object?, Object?>?> Function();
 
-/// Probes RAM/ABI/SDK/free-space through the Kotlin device channel and maps
-/// the result to an [AiTier].
+/// Probes RAM/ABI/SDK/free-space/SoC through the Kotlin device channel and
+/// maps the result to an [AiTier].
 ///
 /// Design rules (audit B):
 /// - Async + defensive: every platform call is try/caught; any failure maps
@@ -64,6 +77,12 @@ typedef PlatformDeviceInfo = Future<Map<Object?, Object?>?> Function();
 /// - Deterministic + testable: the platform call is injectable.
 /// - Explainable: [decide] returns reason codes alongside the tier.
 /// - Thresholds live in ONE file ([AiThresholds]) tied to SPIKE_RESULTS.md.
+///
+/// SoC detection (added for NPU routing):
+/// The Kotlin side now returns `socModel` using `Build.SOC_MODEL` (API 31+)
+/// with a fallback to the hardware/model string on older devices.  The value
+/// is sent lower-cased to make `.contains()` comparisons case-insensitive on
+/// the Dart side.  [DeviceCapabilities.socChipset] carries this field.
 class DeviceProbe {
   static const MethodChannel _channel =
       MethodChannel('com.ailaga.ailaga/device');
@@ -88,6 +107,7 @@ class DeviceProbe {
                 const [],
         freeStorageBytes: (result['freeStorageBytes'] as num?)?.toInt(),
         platform: result['platform']?.toString(),
+        socChipset: result['socModel']?.toString().toLowerCase(),
       );
     } catch (_) {
       // PlatformException, MissingPluginException (iOS/tests), bad casts —
