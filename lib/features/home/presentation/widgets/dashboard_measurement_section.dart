@@ -27,7 +27,7 @@ class DashboardMeasurementSection extends ConsumerWidget {
 
     return DashboardSection(
       icon: Symbols.monitor_heart_rounded,
-      iconColor: const Color(0xFF1B7F3B),
+      iconColor: Theme.of(context).colorScheme.primary,
       title: 'Recent Vitals',
       action: Row(
         mainAxisSize: MainAxisSize.min,
@@ -66,6 +66,8 @@ class DashboardMeasurementSection extends ConsumerWidget {
             final latestList = latestByType.values.toList()
               ..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
 
+            final cs = Theme.of(context).colorScheme;
+            final tt = Theme.of(context).textTheme;
             return Column(
               children: [
                 for (var i = 0; i < latestList.length; i++) ...[
@@ -77,16 +79,16 @@ class DashboardMeasurementSection extends ConsumerWidget {
                     minVerticalPadding: 12,
                     leading: Icon(
                         _iconFor(latestList[i].measurementType),
-                        color: const Color(0xFF0B6B6B),
+                        color: cs.primary,
                         size: 28),
                     title: Text(
                       '${latestList[i].value1} ${latestList[i].unit}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
                         '${latestList[i].measurementType.displayLabel} • ${AppDateUtils.formatDateTime(latestList[i].measuredAt)}'),
-                    trailing: const Icon(Symbols.chevron_right_rounded,
-                        color: Colors.grey),
+                    trailing: Icon(Symbols.chevron_right_rounded,
+                        color: cs.onSurface.withValues(alpha: 0.4)),
                     onTap: () => context.push('/measurements'),
                   ),
                 ],

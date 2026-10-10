@@ -64,7 +64,7 @@ class _AskScreenState extends ConsumerState<AskScreen> {
                   padding: const EdgeInsets.all(12),
                   color: const Color(0xFF9A5B00).withValues(alpha: 0.12),
                   child: const Text(
-                    'Phone helper is off. Simple answers only.',
+                    'Smart Assistant is off. Simple answers only.',
                     style: TextStyle(fontSize: 16),
                   ),
                 );

@@ -148,6 +148,7 @@ class DashboardTasksSection extends ConsumerWidget {
 
   Widget _taskRow(BuildContext context, IconData icon, Color color,
       String label, String route) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => context.push(route),
       child: Padding(
@@ -157,7 +158,8 @@ class DashboardTasksSection extends ConsumerWidget {
             Icon(icon, color: color, size: 22),
             const SizedBox(width: 12),
             Expanded(child: Text(label)),
-            const Icon(Symbols.chevron_right_rounded, color: Colors.grey),
+            Icon(Symbols.chevron_right_rounded,
+                color: cs.onSurface.withValues(alpha: 0.4)),
           ],
         ),
       ),

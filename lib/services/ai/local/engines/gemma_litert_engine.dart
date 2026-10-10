@@ -71,6 +71,8 @@ class GemmaLiteRtEngine implements LocalAiEngine {
   DateTime _lastUsed = DateTime.fromMillisecondsSinceEpoch(0);
   bool _degraded = false;
   bool _modelInstalled = false;
+  bool _supportsImage = false;
+  bool _supportsAudio = false;
   Future<void> _inflight = Future.value();
 
   GemmaLiteRtEngine({
@@ -113,13 +115,34 @@ class GemmaLiteRtEngine implements LocalAiEngine {
     // Pass the preferred backend so LiteRT-LM enables GPU (OpenCL / Metal) or
     // NPU (Qualcomm QNN) inference.  The runtime falls back to CPU silently
     // when the accelerator is unavailable — this call is always safe.
-    _model = await fg.FlutterGemma.getActiveModel(
-      maxTokens: 2048,
-      supportImage: true,
-      supportAudio: true,
-      preferredBackend: _toFgBackend(preferredBackend),
-    );
-    _touch();
+    // Modality ladder: some model files (e.g. the GPU-optimised build) ship
+    // no CPU vision encoder, so requesting supportImage makes engine
+    // creation fail outright even though audio + text would work. Try full
+    // multimodal first, then shed modalities until the engine starts —
+    // callers check _supportsImage/_supportsAudio before using a modality.
+    Object? lastError;
+    for (final (image, audio) in const [
+      (true, true),
+      (false, true),
+      (false, false),
+    ]) {
+      try {
+        _model = await fg.FlutterGemma.getActiveModel(
+          maxTokens: 2048,
+          supportImage: image,
+          supportAudio: audio,
+          preferredBackend: _toFgBackend(preferredBackend),
+        );
+        _supportsImage = image;
+        _supportsAudio = audio;
+        _touch();
+        return;
+      } catch (e) {
+        lastError = e;
+        _model = null;
+      }
+    }
+    throw AiUnavailable('engine create failed: $lastError');
   }
 
   @override
@@ -201,6 +224,12 @@ class GemmaLiteRtEngine implements LocalAiEngine {
             .toList();
         break;
       } catch (e) {
+        if (e is AiUnavailable) {
+          // Capability gap (e.g. no vision encoder in this model file) —
+          // not an engine failure, so don't degrade the whole session.
+          yield ExtractionFailed(e.toString());
+          return;
+        }
         if (attempt == maxAttempts - 1) {
           _degrade();
           yield ExtractionFailed('inference_failed: $e');
@@ -227,6 +256,12 @@ class GemmaLiteRtEngine implements LocalAiEngine {
   }) async {
     final model = _model;
     if (model == null) throw const AiUnavailable('model not loaded');
+    if (clip != null && !_supportsAudio) {
+      throw const AiUnavailable('audio_not_supported');
+    }
+    if (image != null && !_supportsImage) {
+      throw const AiUnavailable('vision_not_supported');
+    }
 
     final session = await model.createSession(
       temperature: 0.1,

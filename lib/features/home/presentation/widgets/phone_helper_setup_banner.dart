@@ -5,7 +5,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../../../app/app_ready_provider.dart';
 
-/// A tappable amber banner shown when the Phone helper has not yet been set up
+/// A tappable amber banner shown when the Smart Assistant has not yet been set up
 /// on a supported device. It disappears automatically once the model is
 /// installed (driven reactively by [appReadyProvider]).
 ///
@@ -41,6 +41,9 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    // Amber warning tone — use a fixed warm amber that reads on both themes.
+    const amber = Color(0xFF9A5B00);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -49,38 +52,37 @@ class _Banner extends StatelessWidget {
           width: double.infinity,
           padding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFFF3E0), // amber-50 tone
+          decoration: BoxDecoration(
+            color: amber.withValues(alpha: 0.10),
             border: Border(
-              bottom: BorderSide(color: Color(0xFFFFB300), width: 1.5),
+              bottom: BorderSide(
+                  color: amber.withValues(alpha: 0.45), width: 1.5),
             ),
           ),
           child: Row(
             children: [
-              const Icon(Symbols.phonelink_lock_rounded,
-                  size: 24, color: Color(0xFF9A5B00)),
+              Icon(Symbols.phonelink_lock_rounded,
+                  size: 24, color: amber),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Phone helper not ready',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF9A5B00),
-                  ),
+                  'Smart Assistant not ready',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: amber,
+                      ),
                 ),
               ),
-              const Text(
+              Text(
                 'Set up',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0B6B6B),
-                ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: cs.primary,
+                    ),
               ),
               const SizedBox(width: 4),
-              const Icon(Symbols.chevron_right_rounded,
-                  size: 20, color: Color(0xFF0B6B6B)),
+              Icon(Symbols.chevron_right_rounded,
+                  size: 20, color: cs.primary),
             ],
           ),
         ),

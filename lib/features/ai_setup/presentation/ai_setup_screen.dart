@@ -11,7 +11,7 @@ import '../../care_recipient/data/care_recipient_providers.dart';
 import '../data/ai_setup_providers.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
-/// "Phone helper" setup screen (UI spec H12). Helper-mode density.
+/// "Smart Assistant" setup screen (UI spec H12). Helper-mode density.
 /// Download → progress → ready. Skip keeps Basic mode fully working.
 class AiSetupScreen extends ConsumerWidget {
   const AiSetupScreen({super.key});
@@ -31,7 +31,7 @@ class AiSetupScreen extends ConsumerWidget {
         'your loved one';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Phone helper')),
+      appBar: AppBar(title: const Text('Smart Assistant')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -152,7 +152,7 @@ class AiSetupScreen extends ConsumerWidget {
             children: [
               const Icon(Symbols.phonelink_lock_rounded, size: 80, color: Color(0xFF0B6B6B)),
               const SizedBox(height: 16),
-              Text('Phone helper', textAlign: TextAlign.center, style: _title(context)),
+              Text('Smart Assistant', textAlign: TextAlign.center, style: _title(context)),
               const SizedBox(height: 24),
               _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
               _infoRow(Symbols.flight_rounded, 'Works offline'),
@@ -193,40 +193,50 @@ class AiSetupScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, ModelStatus status) {
     final pct =
         status.progress == null ? null : (status.progress! * 100).round();
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          status.state == ModelInstallState.verifying
-              ? 'Checking'
-              : 'Downloading',
-          textAlign: TextAlign.center,
-          style: _title(context),
-        ),
-        const SizedBox(height: 8),
-        Text(pct == null ? '…' : '$pct%',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        LinearProgressIndicator(
-          value: status.progress,
-          minHeight: 12,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        const SizedBox(height: 8),
-        if (status.sizeBytes != null)
-          Text(_sizeLabel(status.sizeBytes),
-              textAlign: TextAlign.center, style: _body(context)),
-        const SizedBox(height: 24),
-        OutlinedButton.icon(
-          style: _secondaryStyle(),
-          onPressed: () async {
-            final mgr = await ref.read(modelManagerProvider.future);
-            mgr.pause();
-          },
-          icon: const Icon(Symbols.pause_rounded),
-          label: const Text('Pause'),
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                status.state == ModelInstallState.verifying
+                    ? 'Checking'
+                    : 'Downloading',
+                textAlign: TextAlign.center,
+                style: _title(context),
+              ),
+              const SizedBox(height: 8),
+              Text(pct == null ? '…' : '$pct%',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      )),
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: status.progress,
+                minHeight: 12,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const SizedBox(height: 8),
+              if (status.sizeBytes != null)
+                Text(_sizeLabel(status.sizeBytes),
+                    textAlign: TextAlign.center, style: _body(context)),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                style: _secondaryStyle(),
+                onPressed: () async {
+                  final mgr = await ref.read(modelManagerProvider.future);
+                  mgr.pause();
+                },
+                icon: const Icon(Symbols.pause_rounded),
+                label: const Text('Pause'),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -234,32 +244,39 @@ class AiSetupScreen extends ConsumerWidget {
 
   Widget _installedView(
       BuildContext context, WidgetRef ref, ModelStatus status) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Icon(Symbols.check_circle_rounded, size: 80, color: Color(0xFF1B7F3B)),
-        const SizedBox(height: 16),
-        Text('Ready', textAlign: TextAlign.center, style: _title(context)),
-        const SizedBox(height: 24),
-        _infoRow(Symbols.psychology_rounded, 'Helper: Ready'),
-        _infoRow(Symbols.storage_rounded,
-            'Size: ${_sizeLabel(status.sizeBytes)}'),
-        const Spacer(),
-        OutlinedButton.icon(
-          style: _secondaryStyle().copyWith(
-            foregroundColor:
-                const WidgetStatePropertyAll(Color(0xFFB3261E)),
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Symbols.check_circle_rounded, size: 80, color: Color(0xFF1B7F3B)),
+              const SizedBox(height: 16),
+              Text('Ready', textAlign: TextAlign.center, style: _title(context)),
+              const SizedBox(height: 24),
+              _infoRow(Symbols.psychology_rounded, 'Helper: Ready'),
+              _infoRow(Symbols.storage_rounded,
+                  'Size: ${_sizeLabel(status.sizeBytes)}'),
+              const Spacer(),
+              OutlinedButton.icon(
+                style: _secondaryStyle().copyWith(
+                  foregroundColor:
+                      const WidgetStatePropertyAll(Color(0xFFB3261E)),
+                ),
+                onPressed: () async {
+                  final mgr = await ref.read(modelManagerProvider.future);
+                  await mgr.delete();
+                },
+                icon: const Icon(Symbols.delete_rounded),
+                label: const Text('Delete'),
+              ),
+              const SizedBox(height: 12),
+              _primaryButton(
+                  context, 'Done', () => Navigator.of(context).maybePop()),
+            ],
           ),
-          onPressed: () async {
-            final mgr = await ref.read(modelManagerProvider.future);
-            await mgr.delete();
-          },
-          icon: const Icon(Symbols.delete_rounded),
-          label: const Text('Delete'),
         ),
-        const SizedBox(height: 12),
-        _primaryButton(
-            context, 'Done', () => Navigator.of(context).maybePop()),
       ],
     );
   }
@@ -274,7 +291,7 @@ class AiSetupScreen extends ConsumerWidget {
             ?.displayName ??
         'your loved one';
     return Scaffold(
-      appBar: AppBar(title: const Text('Phone helper')),
+      appBar: AppBar(title: const Text('Smart Assistant')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -300,32 +317,39 @@ class AiSetupScreen extends ConsumerWidget {
 
   Widget _iosBody(
       BuildContext context, bool available, String reason, String name) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Icon(
-          available ? Symbols.check_circle_rounded : Symbols.phonelink_lock_rounded,
-          size: 80,
-          color: available
-              ? const Color(0xFF1B7F3B)
-              : const Color(0xFF0B6B6B),
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(
+                available ? Symbols.check_circle_rounded : Symbols.phonelink_lock_rounded,
+                size: 80,
+                color: available
+                    ? const Color(0xFF1B7F3B)
+                    : const Color(0xFF0B6B6B),
+              ),
+              const SizedBox(height: 16),
+              Text(available ? 'Ready' : 'Smart Assistant',
+                  textAlign: TextAlign.center, style: _title(context)),
+              const SizedBox(height: 24),
+              if (available) ...[
+                _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
+                _infoRow(Symbols.flight_rounded, 'Works offline'),
+                _infoRow(Symbols.mic_none_rounded, 'Hears $name'),
+              ] else ...[
+                _infoRow(Symbols.settings_rounded, _iosReasonText(reason)),
+                _infoRow(Symbols.keyboard_alt_rounded,
+                    'Typing still works either way'),
+              ],
+              const Spacer(),
+              _primaryButton(
+                  context, 'Done', () => Navigator.of(context).maybePop()),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        Text(available ? 'Ready' : 'Phone helper',
-            textAlign: TextAlign.center, style: _title(context)),
-        const SizedBox(height: 24),
-        if (available) ...[
-          _infoRow(Symbols.lock_rounded, 'Stays on this phone'),
-          _infoRow(Symbols.flight_rounded, 'Works offline'),
-          _infoRow(Symbols.mic_none_rounded, 'Hears $name'),
-        ] else ...[
-          _infoRow(Symbols.settings_rounded, _iosReasonText(reason)),
-          _infoRow(Symbols.keyboard_alt_rounded,
-              'Typing still works either way'),
-        ],
-        const Spacer(),
-        _primaryButton(
-            context, 'Done', () => Navigator.of(context).maybePop()),
       ],
     );
   }
@@ -344,15 +368,23 @@ class AiSetupScreen extends ConsumerWidget {
     return 'The helper is not available on this iPhone';
   }
 
-  Widget _infoRow(IconData icon, String text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(children: [
-          Icon(icon, size: 32, color: const Color(0xFF0B6B6B)),
-          const SizedBox(width: 16),
-          Expanded(
-              child: Text(text,
-                  style: const TextStyle(fontSize: 20, height: 1.3))),
-        ]),
+  Widget _infoRow(IconData icon, String text) => Builder(
+        builder: (context) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(children: [
+            Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                text,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 20,
+                      height: 1.3,
+                    ),
+              ),
+            ),
+          ]),
+        ),
       );
 
   Widget _primaryButton(

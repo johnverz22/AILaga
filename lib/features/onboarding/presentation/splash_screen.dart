@@ -29,8 +29,6 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
-  static const _teal = Color(0xFF0B6B6B);
-  static const _indigo = Color(0xFF2F4B8A);
   static const _minDisplayMs = 1400;
 
   late final AnimationController _ctrl;
@@ -92,8 +90,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       });
     });
 
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFDF8),
       body: SafeArea(
         child: Center(
           child: FadeTransition(
@@ -106,7 +106,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: _teal, width: 3),
+                      border: Border.all(color: cs.primary, width: 3),
                     ),
                     child: ClipOval(
                       child: Image.asset(
@@ -114,47 +114,41 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         width: 160,
                         height: 160,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Symbols.health_and_safety_rounded,
                           size: 96,
-                          color: _teal,
+                          color: cs.primary,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'AILaga',
-                    style: TextStyle(
-                      fontSize: 40,
+                    style: tt.displaySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1A1A),
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Row(
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Symbols.favorite_rounded, size: 18, color: _indigo),
-                      SizedBox(width: 6),
+                      Icon(Symbols.favorite_rounded, size: 18, color: cs.secondary),
+                      const SizedBox(width: 6),
                       Text(
-                        'Care for Lola',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
-                        ),
+                        'Family care, on your phone.',
+                        style: tt.titleMedium,
                       ),
                     ],
                   ),
                   const SizedBox(height: 32),
-                  const SizedBox(
+                  SizedBox(
                     width: 32,
                     height: 32,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
-                      color: _teal,
+                      color: cs.primary,
                     ),
                   ),
                 ],

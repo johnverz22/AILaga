@@ -35,21 +35,46 @@ class CareBriefScreen extends ConsumerWidget {
     final date = ref.watch(careBriefDateProvider);
     final briefAsync = ref.watch(careBriefProvider);
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daily Care Brief'),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Symbols.handshake_rounded, size: 20),
-            label: const Text('Handover'),
-            onPressed: () => context.push('/handover'),
+      ),
+      // Action buttons pinned to the bottom — this screen has no bottom
+      // nav bar (pushed page), so they sit at the screen's lower edge.
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(top: BorderSide(color: cs.outline, width: 1.5)),
           ),
-          TextButton.icon(
-            icon: const Icon(Symbols.picture_as_pdf_rounded, size: 20),
-            label: const Text('PDF'),
-            onPressed: () => context.push('/reports'),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton.icon(
+                    onPressed: () => context.push('/handover'),
+                    icon: const Icon(Symbols.handshake_rounded),
+                    label: const Text('Handover'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/reports'),
+                    icon: const Icon(Symbols.picture_as_pdf_rounded),
+                    label: const Text('PDF report'),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       body: Column(
         children: [

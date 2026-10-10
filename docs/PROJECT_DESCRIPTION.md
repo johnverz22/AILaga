@@ -1,7 +1,7 @@
 # AILaga — Project Description & Tech Stack
 
 > *AI + alaga* (Filipino: "to care for")
-> Last updated: 2026-10-10 (mandatory Phone helper initialization flow added)
+> Last updated: 2026-10-10 (mandatory Smart Assistant initialization flow added)
 
 ---
 
@@ -309,7 +309,7 @@ Voice / Camera / Text
 5. Medical-advice patterns in Ask responses → fixed refusal injected
 6. SOS never routed through AI — it runs on the first app start with zero dependencies
 
-**Phone helper initialization (mandatory, not optional):**
+**Smart Assistant initialization (mandatory, not optional):**
 
 The model download is now a required first-run step, not a buried Settings action. The `InitializationScreen` gates entry to HomeScreen until the model is installed, the device is confirmed unsupported (Basic mode is acceptable), or the user explicitly chooses "Try later" (HomeScreen banner persists as a reminder). Every cold start re-evaluates `appReadyProvider` — returning users with an installed model see a 1–2 s "Checking…" flash and proceed instantly.
 
@@ -322,7 +322,7 @@ The model download is now a required first-run step, not a buried Settings actio
 | `FlutterGemma.initialize()` errors silently swallowed | `lib/main.dart` | Now logged via `ErrorHandler.recordError()` for on-device debugging |
 | Splash screen used a hardcoded 1600 ms timer, not real initialization | `splash_screen.dart` | Replaced with `appReadyProvider` watch; minimum 1.4 s display, then provider-driven navigation |
 | Router redirect only checked for care recipient, ignored model state | `lib/app/router.dart` | New 4-state redirect via `appReadyProvider` covering onboarding, initialization, unsupported device, and ready |
-| Download was only discoverable via Settings → Phone helper | `ai_setup_screen.dart` | `InitializationScreen` at `/initialization` is now the primary download path; AiSetupScreen is settings-only management |
+| Download was only discoverable via Settings → Smart Assistant | `ai_setup_screen.dart` | `InitializationScreen` at `/initialization` is now the primary download path; AiSetupScreen is settings-only management |
 
 ---
 

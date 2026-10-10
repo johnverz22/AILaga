@@ -75,73 +75,76 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
         title: const Text('Record'),
         actions: const [SosAppBarButton()],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // AI status banner
-            aiTier.when(
-              data: (tier) {
-                if (tier == AiTier.basic) {
-                  return Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.amber.shade300),
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    // AI status banner
+                    aiTier.when(
+                      data: (tier) {
+                        if (tier == AiTier.basic) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9A5B00)
+                                  .withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: const Color(0xFF9A5B00)
+                                      .withValues(alpha: 0.35)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Symbols.info_rounded,
+                                    color: Color(0xFF9A5B00), size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Type below — voice needs Smart Assistant.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            color: const Color(0xFF9A5B00)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(Symbols.info_rounded,
-                            color: Color(0xFF9A5B00), size: 24),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Type your note below. Turn on Phone helper in Settings to use voice.',
-                            style: TextStyle(fontSize: 17),
-                          ),
-                        ),
-                      ],
+
+                    // Transcript / recording area
+                    Expanded(
+                      child: _isProcessing
+                          ? _buildProcessingState(theme)
+                          : _proposals.isNotEmpty
+                              ? _buildResultsPreview(theme)
+                              : _buildCaptureInput(theme),
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+
+                    const SizedBox(height: 8),
+
+                    // Action buttons
+                    if (!_isProcessing && _proposals.isEmpty)
+                      _buildActionButtons(theme),
+                  ],
+                ),
+              ),
             ),
-
-            // Transcript / recording area. Scrollable so an open keyboard
-            // (or a small screen) shrinks it instead of overflowing.
-            Expanded(
-              child: _isProcessing
-                  ? _scrollableCenter(_buildProcessingState(theme))
-                  : _proposals.isNotEmpty
-                      ? _buildResultsPreview(theme)
-                      : _scrollableCenter(_buildCaptureInput(theme)),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Action buttons
-            if (!_isProcessing && _proposals.isEmpty)
-              _buildActionButtons(theme),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Centers [child] when it fits; scrolls instead of overflowing when the
-  /// keyboard or a short screen squeezes the available height.
-  Widget _scrollableCenter(Widget child) {
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: IntrinsicHeight(child: child),
+          ),
         ),
       ),
     );
@@ -155,47 +158,43 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (_isRecording)
-          // Countdown ring: shrinks toward the 30 s hard stop so the
-          // limit is visible, not a surprise.
           SizedBox(
-            width: 96,
-            height: 96,
+            width: 72,
+            height: 72,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox.expand(
                   child: CircularProgressIndicator(
                     value: msLeft / _recordLimit.inMilliseconds,
-                    strokeWidth: 6,
+                    strokeWidth: 5,
                     color: theme.colorScheme.error,
                     backgroundColor:
                         theme.colorScheme.error.withValues(alpha: 0.15),
                   ),
                 ),
                 Icon(Symbols.mic_rounded,
-                    size: 44, color: theme.colorScheme.error),
+                    size: 36, color: theme.colorScheme.error),
               ],
             ),
           )
         else
           Icon(
             Symbols.mic_none_rounded,
-            size: 80,
+            size: 56,
             color: theme.colorScheme.primary,
           ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
         Text(
-          _isRecording ? 'Listening… ${secondsLeft}s' : 'Record or type',
-          style: theme.textTheme.headlineSmall,
+          _isRecording ? '${secondsLeft}s left' : 'Record or type',
+          style: theme.textTheme.titleMedium,
         ),
-        const SizedBox(height: 32),
-        // Text input field (always available as fallback)
+        const SizedBox(height: 16),
         TextField(
           controller: _textController,
-          maxLines: 4,
+          maxLines: 3,
           decoration: InputDecoration(
-            hintText:
-                'Example: "${_recipientName()} took Metformin, BP 130/80"',
+            hintText: 'e.g. "Took Metformin, BP 130/80"',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -212,23 +211,22 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(
-            width: 64,
-            height: 64,
+            width: 48,
+            height: 48,
             child: CircularProgressIndicator(strokeWidth: 3),
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Processing…',
-            style: theme.textTheme.titleMedium,
-          ),
+          const SizedBox(height: 16),
+          Text('Processing…', style: theme.textTheme.titleSmall),
           if (_transcript != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               _transcript!,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: theme.textTheme.bodySmall?.copyWith(
                 fontStyle: FontStyle.italic,
               ),
               textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],
@@ -241,8 +239,8 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${_proposals.length} ${_proposals.length == 1 ? 'record' : 'records'} heard',
-          style: theme.textTheme.titleMedium,
+          '${_proposals.length} ${_proposals.length == 1 ? 'record' : 'records'} found',
+          style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: 8),
         Expanded(
@@ -251,12 +249,25 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
             itemBuilder: (context, index) {
               final p = _proposals[index];
               return ListTile(
+                dense: true,
                 leading: Icon(
-                  p.flag == ProposalFlag.sure ? Symbols.check_circle_rounded : Symbols.warning_rounded,
-                  color: p.flag == ProposalFlag.sure ? Colors.green : Colors.orange,
+                  p.flag == ProposalFlag.sure
+                      ? Symbols.check_circle_rounded
+                      : Symbols.warning_rounded,
+                  color: p.flag == ProposalFlag.sure
+                      ? const Color(0xFF1B7F3B)
+                      : const Color(0xFF9A5B00),
+                  size: 22,
                 ),
-                title: Text(_describeProposal(p)),
-                subtitle: Text('"${p.sourceQuote}"', style: const TextStyle(fontStyle: FontStyle.italic)),
+                title: Text(_describeProposal(p),
+                    style: theme.textTheme.bodyMedium),
+                subtitle: Text(
+                  '"${p.sourceQuote}"',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(fontStyle: FontStyle.italic),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             },
           ),
@@ -266,48 +277,51 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
   }
 
   Widget _buildActionButtons(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // Three equal buttons in one row — keeps total height to ~56dp even
+    // when the keyboard is up and vertical space is tight.
+    return Row(
       children: [
-        Row(
-          children: [
-            // Record button — disabled in Basic mode (text is the input there)
-            Expanded(
-              child: SizedBox(
-                height: 56,
-                child: OutlinedButton.icon(
-                  onPressed: _isBasicTier ? null : _toggleRecording,
-                  icon: Icon(_isRecording
-                      ? Symbols.stop_rounded
-                      : Symbols.mic_rounded),
-                  label: Text(_isRecording ? 'Stop' : 'Record'),
-                ),
-              ),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: _isBasicTier ? null : _toggleRecording,
+            icon: Icon(_isRecording
+                ? Symbols.stop_rounded
+                : Symbols.mic_rounded,
+                size: 20),
+            label: Text(_isRecording ? 'Stop' : 'Record'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(width: 12),
-            // Snap (photo capture) — beside Record, icon + word
-            Expanded(
-              child: SizedBox(
-                height: 56,
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push('/capture/snap'),
-                  icon: const Icon(Symbols.photo_camera_rounded),
-                  label: const Text('Photo'),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 12),
-        // Process — full-width primary action at the very bottom
-        SizedBox(
-          height: 64,
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => context.push('/capture/snap'),
+            icon: const Icon(Symbols.photo_camera_rounded, size: 20),
+            label: const Text('Photo'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
           child: FilledButton.icon(
             onPressed: _textController.text.trim().isEmpty && !_isRecording
                 ? null
                 : _processInput,
-            icon: const Icon(Symbols.send_rounded),
-            label: const Text('Process'),
+            icon: const Icon(Symbols.send_rounded, size: 20),
+            label: const Text('Send'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
@@ -316,12 +330,6 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
 
   bool get _isBasicTier =>
       ref.read(aiTierProvider).valueOrNull == AiTier.basic;
-
-  /// Care recipient's name for example text — falls back to a neutral
-  /// placeholder if the profile is still loading.
-  String _recipientName() =>
-      ref.watch(primaryCareRecipientProvider).valueOrNull?.displayName ??
-      'Mom';
 
   Future<void> _toggleRecording() async {
     if (!_isRecording) {
@@ -411,7 +419,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       sw.stop();
 
       // Audio is discarded after extraction unless the user turned on
-      // "Keep recordings" in Phone helper settings (spec C8). The read is
+      // "Keep recordings" in Smart Assistant settings (spec C8). The read is
       // guarded so the clip is still deleted if the screen was left
       // mid-extraction — privacy must not depend on the UI staying open.
       if (clip is WavAudioClip) {
@@ -440,8 +448,27 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       );
     } catch (e) {
       if (mounted) {
+        final String message;
+        final raw = e is AiUnavailable
+            ? e.message
+            : (e is StateError ? e.message : '');
+        if (raw.contains('audio_not_supported')) {
+          message = 'This Smart Assistant cannot listen on this phone. '
+              'Please type instead.';
+        } else if (e is AiUnavailable ||
+            (e is StateError && e.message.startsWith('engine_unavailable'))) {
+          message = 'Smart Assistant could not start. '
+              'Try reinstalling it in Settings → Smart Assistant.';
+        } else if (e is TimeoutException) {
+          message = 'Took too long. Try a shorter recording.';
+        } else if (e is StateError) {
+          // Preserves our own known messages (e.g. "Could not hear anything…")
+          message = e.message;
+        } else {
+          message = 'Something went wrong. Try again.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong. Try again.')),
+          SnackBar(content: Text(message)),
         );
         setState(() => _isProcessing = false);
       }
@@ -508,8 +535,18 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen> {
       );
     } catch (e) {
       if (mounted) {
+        final String message;
+        if (e is AiUnavailable ||
+            (e is StateError && e.message.startsWith('engine_unavailable'))) {
+          message = 'Smart Assistant could not start. '
+              'Try reinstalling it in Settings → Smart Assistant.';
+        } else if (e is TimeoutException) {
+          message = 'Took too long. Please try again.';
+        } else {
+          message = 'Something went wrong. Try again.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong. Try again.')),
+          SnackBar(content: Text(message)),
         );
       }
     } finally {

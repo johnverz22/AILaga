@@ -22,20 +22,29 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         centerTitle: false,
         titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            recipientAsync.when(
-              data: (recipient) =>
-                  Text('Hello, ${recipient?.displayName ?? 'Caregiver'}'),
-              loading: () => const Text('AILaga'),
-              error: (_, __) => const Text('AILaga'),
-            ),
-            Text(
-              DateFormatter.formatDate(DateTime.now()),
-              style: const TextStyle(fontSize: 15, color: Color(0xFF5E5748)),
-            ),
-          ],
+        title: recipientAsync.when(
+          data: (recipient) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                recipient?.displayName ?? 'Caregiver',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                DateFormatter.formatDate(DateTime.now()),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.normal,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          loading: () => const Text('AILaga', style: TextStyle(fontSize: 18)),
+          error: (_, __) => const Text('AILaga', style: TextStyle(fontSize: 18)),
         ),
         actions: const [SosAppBarButton()],
       ),

@@ -38,13 +38,18 @@ const _hfBase =
     'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm'
     '/resolve/main/';
 
-/// GPU-optimised file (2.01 GB) — default for all devices unless the probe
-/// detects a supported NPU chipset.
+/// GPU-optimised file (2.01 GB) — kept for reference / manual override via
+/// --dart-define=AI_MODEL_URL. NOT the runtime default: on current
+/// flutter_gemma_litertlm builds the Artisan GPU engine is not registered
+/// (only kAdvancedLiteRTCompiledModel), so every device falls back to CPU —
+/// and this file ships no TF_LITE_VISION_ENCODER, which makes engine
+/// creation fail outright. The generic file carries all CPU encoders.
+// ignore: unused_element
 const _gpuModelUrl = '${_hfBase}gemma-4-E2B-it-gpu.litertlm';
 
-/// Generic file (2.59 GB) — kept for reference / manual override via
-/// --dart-define=AI_MODEL_URL.  Not used as the runtime default any more.
-// ignore: unused_element
+/// Generic file (2.59 GB) — default for all devices unless the probe
+/// detects a supported NPU chipset. Works on CPU (and GPU where available)
+/// and includes the TFLite vision/audio encoders the GPU variant lacks.
 const _genericModelUrl = '${_hfBase}gemma-4-E2B-it.litertlm';
 
 /// Qualcomm Snapdragon 8 Gen 4 / SM8750 NPU-compiled file (3.02 GB).
@@ -99,7 +104,7 @@ final kAiModelProvider = FutureProvider<ModelDescriptor>((ref) async {
       id: 'gemma4-e2b-custom',
       url: _modelUrlOverride,
       sha256: _modelSha256Override.isNotEmpty ? _modelSha256Override : null,
-      displayName: 'Phone helper',
+      displayName: 'Smart Assistant',
     );
   }
 
@@ -119,7 +124,7 @@ ModelDescriptor _resolveModelDescriptor(DeviceCapabilities caps) {
       id: 'gemma4-e2b-sm8750',
       url: _qualcommSm8750Url,
       sha256: null, // verify on first run → record in SPIKE_RESULTS.md S6
-      displayName: 'Phone helper',
+      displayName: 'Smart Assistant',
     );
   }
 
@@ -129,7 +134,7 @@ ModelDescriptor _resolveModelDescriptor(DeviceCapabilities caps) {
       id: 'gemma4-e2b-tensor-g6',
       url: _tensorG6Url,
       sha256: null,
-      displayName: 'Phone helper',
+      displayName: 'Smart Assistant',
     );
   }
 
@@ -139,17 +144,21 @@ ModelDescriptor _resolveModelDescriptor(DeviceCapabilities caps) {
       id: 'gemma4-e2b-tensor-g5',
       url: _tensorG5Url,
       sha256: null,
-      displayName: 'Phone helper',
+      displayName: 'Smart Assistant',
     );
   }
 
-  // Default: GPU-optimised file (2.01 GB) — works on any arm64 Android 12+
-  // device with an OpenCL-capable GPU (Adreno, Mali, PowerVR, Exynos GPU).
+  // Default: generic file (2.59 GB) for every other device — Qualcomm,
+  // Exynos, Mali, unknown. The GPU-optimised variant only helps when the
+  // LiteRT Artisan GPU engine is registered; on current plugin builds it is
+  // not, and the file's missing CPU vision encoder then breaks engine
+  // creation entirely. Devices that already downloaded another variant keep
+  // using it — see ModelManager.existingModelPath().
   return const ModelDescriptor(
-    id: 'gemma4-e2b-gpu',
-    url: _gpuModelUrl,
+    id: 'gemma4-e2b-generic',
+    url: _genericModelUrl,
     sha256: null, // verify on first run → record in SPIKE_RESULTS.md S6
-    displayName: 'Phone helper',
+    displayName: 'Smart Assistant',
   );
 }
 
@@ -184,11 +193,11 @@ final modelStatusProvider = StreamProvider<ModelStatus>((ref) async* {
 // They should migrate to kAiModelProvider once they have a WidgetRef.
 // ---------------------------------------------------------------------------
 
-/// Synchronous fallback descriptor (GPU file, no chipset customisation).
+/// Synchronous fallback descriptor (generic file, no chipset customisation).
 /// Prefer [kAiModelProvider] when inside a Riverpod context.
 final kAiModel = ModelDescriptor(
-  id: 'gemma4-e2b-gpu',
-  url: _gpuModelUrl,
+  id: 'gemma4-e2b-generic',
+  url: _genericModelUrl,
   sha256: null,
-  displayName: 'Phone helper',
+  displayName: 'Smart Assistant',
 );

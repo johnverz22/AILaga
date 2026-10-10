@@ -47,14 +47,12 @@ class AppShell extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
 
     int getIndex() {
-      if (location.startsWith('/brief') || location.startsWith('/handover')) return 1;
       if (location.startsWith('/medications') ||
           location.startsWith('/measurements') ||
           location.startsWith('/appointments') ||
           location.startsWith('/care-notes') ||
           location.startsWith('/settings') ||
           location.startsWith('/family-contacts') ||
-          location.startsWith('/reports') ||
           location.startsWith('/care-recipient') ||
           location.startsWith('/ai-privacy')) {
         return 4;
@@ -67,7 +65,9 @@ class AppShell extends StatelessWidget {
         case 0:
           context.go('/');
         case 1:
-          context.go('/brief');
+          // Pushed, not a shell tab — full screen without the nav bar so
+          // the action buttons sit at the screen bottom.
+          context.push('/brief');
         case 2:
           // Pushed, not a shell tab — full screen without the nav bar,
           // back button returns to the last tab.
@@ -252,6 +252,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/ask',
         builder: (context, state) => const AskScreen(),
       ),
+      // Reports & its forward screens — also nav-free pages so their
+      // action buttons can sit at the bottom of the screen.
+      GoRoute(
+        path: '/brief',
+        builder: (context, state) => const CareBriefScreen(),
+      ),
+      GoRoute(
+        path: '/handover',
+        builder: (context, state) => const HandoverScreen(),
+      ),
+      GoRoute(
+        path: '/reports',
+        builder: (context, state) => const ReportsScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
@@ -259,15 +273,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/',
             builder: (context, state) => const HomeScreen(),
-          ),
-          // Tab 1: Ulat (Brief/Handover)
-          GoRoute(
-            path: '/brief',
-            builder: (context, state) => const CareBriefScreen(),
-          ),
-          GoRoute(
-            path: '/handover',
-            builder: (context, state) => const HandoverScreen(),
           ),
           // Higit pa (More) sub-routes — kept in shell
           GoRoute(
@@ -297,10 +302,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: '/reports',
-            builder: (context, state) => const ReportsScreen(),
           ),
           GoRoute(
             path: '/ai-privacy',

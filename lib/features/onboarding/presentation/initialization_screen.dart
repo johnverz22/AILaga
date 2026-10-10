@@ -34,6 +34,7 @@ class InitializationScreen extends ConsumerStatefulWidget {
 
 class _InitializationScreenState extends ConsumerState<InitializationScreen> {
   static const _teal = Color(0xFF0B6B6B);
+  bool _installTriggered = false;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +67,16 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
         }
         // Device is capable — check model status.
         final statusAsync = ref.watch(modelStatusProvider);
+        
+        // Auto-start download if not installed
+        if (statusAsync.value?.state == ModelInstallState.notInstalled && !_installTriggered) {
+          _installTriggered = true;
+          Future.microtask(() async {
+            final mgr = await ref.read(modelManagerProvider.future);
+            if (mounted) mgr.install();
+          });
+        }
+        
         return statusAsync.when(
           loading: _checkingView,
           error: (_, __) => _ErrorView(
@@ -84,6 +95,7 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
       case ModelInstallState.installed:
         return _InstalledView(onDone: _proceed);
 
+      case ModelInstallState.notInstalled:
       case ModelInstallState.downloading:
       case ModelInstallState.verifying:
         return _ProgressView(
@@ -104,7 +116,6 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
           onLater: _proceed,
         );
 
-      case ModelInstallState.notInstalled:
       case ModelInstallState.paused:
         return _DownloadView(
           status: status,
@@ -141,7 +152,7 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
     if (d.reasons.contains(TierReason.sdkTooOld) ||
         d.reasons.contains(TierReason.unsupportedCpu) ||
         d.reasons.contains(TierReason.lowRam)) {
-      return 'This phone is too small for the Phone helper. '
+      return 'This phone is too small for the Smart Assistant. '
           'Typing still works.';
     }
     return 'We could not check this phone. Typing still works.';
@@ -172,7 +183,7 @@ class _IosView extends ConsumerWidget {
         ),
       ),
       error: (_, __) => _UnsupportedView(
-        reason: 'Could not check the Phone helper. Typing still works.',
+        reason: 'Could not check the Smart Assistant. Typing still works.',
         onContinue: onDone,
       ),
       data: (a) {
@@ -185,13 +196,13 @@ class _IosView extends ConsumerWidget {
               'Typing still works.';
         } else if (reason.contains('deviceNotEligible')) {
           text =
-              'This iPhone does not support the Phone helper. Typing still works.';
+              'This iPhone does not support the Smart Assistant. Typing still works.';
         } else if (reason.contains('requires_ios_26') ||
             reason.contains('notReady')) {
-          text = 'Update this iPhone to use the Phone helper. '
+          text = 'Update this iPhone to use the Smart Assistant. '
               'Typing still works.';
         } else {
-          text = 'Phone helper is not available. Typing still works.';
+          text = 'Smart Assistant is not available. Typing still works.';
         }
         return _UnsupportedView(reason: text, onContinue: onDone);
       },
@@ -237,7 +248,7 @@ class _InstalledViewState extends State<_InstalledView> {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Phone helper is on.',
+            'Smart Assistant is on.',
             style: TextStyle(fontSize: 20, color: Color(0xFF5E5748)),
           ),
         ],
@@ -262,7 +273,7 @@ class _UnsupportedView extends StatelessWidget {
             size: 80, color: Color(0xFF9A5B00)),
         const SizedBox(height: 20),
         Text(
-          'Phone helper not available',
+          'Smart Assistant not available',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -304,7 +315,7 @@ class _DownloadView extends StatelessWidget {
             size: 80, color: Color(0xFF0B6B6B)),
         const SizedBox(height: 20),
         Text(
-          'Phone helper',
+          'Smart Assistant',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -364,31 +375,54 @@ class _ProgressView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          isVerifying ? 'Checking' : 'Downloading',
+          isVerifying ? 'Verifying' : 'Initializing models',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 28,
               ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Text(
-          pct == null ? '…' : '$pct%',
+          isVerifying 
+              ? 'Almost done! Checking the downloaded files...' 
+              : 'Downloading the Smart Assistant. This keeps all records private and lets the app work fully offline.',
           textAlign: TextAlign.center,
           style: const TextStyle(
-              fontSize: 56,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0B6B6B)),
+            fontSize: 18,
+            color: Color(0xFF5E5748),
+            height: 1.4,
+          ),
         ),
-        const SizedBox(height: 20),
-        LinearProgressIndicator(
-          value: status.progress,
-          minHeight: 14,
-          borderRadius: BorderRadius.circular(7),
-          color: const Color(0xFF0B6B6B),
-          backgroundColor: const Color(0xFFD9D2C3),
+        const SizedBox(height: 40),
+        Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: status.progress,
+                  strokeWidth: 16,
+                  color: const Color(0xFF0B6B6B),
+                  backgroundColor: const Color(0xFFD9D2C3),
+                ),
+                Center(
+                  child: Text(
+                    pct == null ? '…' : '$pct%',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0B6B6B)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 48),
         if (status.sizeBytes != null)
           Text(
             _sizeLabel(status.sizeBytes),
@@ -446,7 +480,7 @@ class _ErrorView extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          _errorText(errorCode),
+          _errorText(errorCode) + '\n\nPlease try again. The Smart Assistant is strongly recommended for the full experience.',
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 20, color: Color(0xFF5E5748)),
         ),
@@ -457,7 +491,7 @@ class _ErrorView extends StatelessWidget {
           height: 52,
           child: TextButton(
             onPressed: onLater,
-            child: const Text('Try later',
+            child: const Text('Try later (Basic mode only)',
                 style: TextStyle(fontSize: 18, color: Color(0xFF5E5748))),
           ),
         ),

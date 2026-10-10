@@ -32,7 +32,7 @@ class DashboardAppointmentSection extends ConsumerWidget {
 
     return DashboardSection(
       icon: Symbols.event_rounded,
-      iconColor: const Color(0xFF2F4B8A),
+      iconColor: Theme.of(context).colorScheme.secondary,
       title: 'Next Appointment',
       action: TextButton(
         onPressed: () => context.push('/appointments'),
@@ -51,16 +51,18 @@ class DashboardAppointmentSection extends ConsumerWidget {
             return ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               minVerticalPadding: 12,
-              leading: const Icon(Symbols.event_rounded,
-                  color: Color(0xFF2F4B8A), size: 28),
+              leading: Icon(Symbols.event_rounded,
+                  color: Theme.of(context).colorScheme.secondary, size: 28),
               title: Text(
                 appointment.providerOrFacility ?? 'Unknown Provider',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                   '${DateFormatter.formatDate(appointment.scheduledAt)} at ${DateFormatter.formatTime(appointment.scheduledAt)}\n${appointment.purpose}'),
               isThreeLine: true,
-              trailing: const Icon(Symbols.chevron_right_rounded, color: Colors.grey),
+              trailing: Icon(Symbols.chevron_right_rounded,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
               onTap: () => context.push('/appointments'),
             );
           },

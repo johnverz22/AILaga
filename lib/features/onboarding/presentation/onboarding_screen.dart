@@ -182,7 +182,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   /// One-tap demo: seeds the B22 dataset and lands on the initialization
-  /// screen so the Phone helper setup check runs even for demo users.
+  /// screen so the Smart Assistant setup check runs even for demo users.
   Future<void> _loadDemoData() async {
     setState(() => _isLoading = true);
     try {
@@ -208,7 +208,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _completeOnboarding() {
     // Go to the initialization screen so the user is prompted to download
-    // the Phone helper right after setting up their profile. The
+    // the Smart Assistant right after setting up their profile. The
     // InitializationScreen handles unsupported devices gracefully and
     // provides "Try later" if they want to skip for now.
     context.go('/initialization');
@@ -326,26 +326,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildStep1Welcome() {
-    const teal = Color(0xFF0B6B6B);
-    const indigo = Color(0xFF2F4B8A);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return _scrollableCenter(
       Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Brand hero — app mark in a warm card with teal ring.
+          // Brand hero — app mark in a card with teal ring.
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: const Color(0xFFF3EFE6),
+              color: cs.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: const Color(0xFFD9D2C3), width: 2),
+              border: Border.all(color: cs.outline, width: 2),
             ),
             child: Column(
               children: [
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: teal, width: 3),
+                    border: Border.all(color: cs.primary, width: 3),
                   ),
                   child: ClipOval(
                     child: Image.asset(
@@ -353,34 +353,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       width: 140,
                       height: 140,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, __, ___) => Icon(
                         Symbols.health_and_safety_rounded,
                         size: 80,
-                        color: teal,
+                        color: cs.primary,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text('Care for Lola',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(color: const Color(0xFF1A1A1A))),
+                Text(
+                  'Family care, on your phone.',
+                  style: tt.headlineMedium,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Talk. We write it down.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  style: tt.titleMedium,
                 ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Symbols.flight_rounded, size: 20, color: teal),
-                    SizedBox(width: 6),
-                    Text('Works with no internet.',
-                        style: TextStyle(fontSize: 16)),
+                  children: [
+                    Icon(Symbols.flight_rounded, size: 20, color: cs.primary),
+                    const SizedBox(width: 6),
+                    Text('Works with no internet.', style: tt.bodyMedium),
                   ],
                 ),
               ],
@@ -389,7 +388,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 20),
           _buildInfoBox(
             icon: Symbols.shield_rounded,
-            iconColor: teal,
+            iconColor: cs.primary,
             title: 'Stays on this phone',
             description:
                 'No account needed. Your family data never leaves this device.',
@@ -397,15 +396,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 12),
           _buildInfoBox(
             icon: Symbols.favorite_rounded,
-            iconColor: indigo,
+            iconColor: cs.secondary,
             title: 'You confirm every record',
-            description:
-                'Nothing is saved until a person taps Confirm.',
+            description: 'Nothing is saved until a person taps Confirm.',
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'AILaga is not a medical device.',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+            style: tt.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55)),
           ),
           const Spacer(),
           SizedBox(
@@ -447,7 +445,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 24),
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Display Name *', hintText: 'e.g., Mom, Lola Maria'),
+            decoration: const InputDecoration(labelText: 'Display Name *', hintText: 'e.g., Mom, Dad, Lolo Ben'),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -639,25 +637,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       {required IconData icon,
       required String title,
       required String description,
-      Color iconColor = const Color(0xFF0B6B6B)}) {
+      Color? iconColor}) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3EFE6),
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFD9D2C3), width: 2),
+        border: Border.all(color: cs.outline, width: 2),
       ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 32),
+          Icon(icon, color: iconColor ?? cs.primary, size: 32),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(title, style: tt.titleSmall),
                 const SizedBox(height: 4),
-                Text(description, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 16)),
+                Text(description, style: tt.bodySmall),
               ],
             ),
           ),

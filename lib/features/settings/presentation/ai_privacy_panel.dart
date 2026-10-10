@@ -74,7 +74,7 @@ class AiPrivacyPanel extends ConsumerWidget {
           _infoTile(
             theme,
             icon: Symbols.memory_rounded,
-            label: 'Phone helper',
+            label: 'Smart Assistant',
             value: helperOn
                 ? 'On — works without internet'
                 : 'Off — typing still works',

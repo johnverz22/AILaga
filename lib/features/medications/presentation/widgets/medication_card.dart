@@ -105,14 +105,17 @@ class MedicationCard extends StatelessWidget {
                   Icon(Symbols.date_range_rounded,
                       size: 14, color: cs.onSurface.withValues(alpha: 0.4)),
                   const SizedBox(width: 4),
-                  Text(
-                    _dateRange(schedule),
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      color: cs.onSurface.withValues(alpha: 0.5),
+                  Expanded(
+                    child: Text(
+                      _dateRange(schedule),
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        color: cs.onSurface.withValues(alpha: 0.5),
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
-                  if (schedule.isActive && onDeactivate != null)
+                  if (schedule.isActive && onDeactivate != null) ...[
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: onDeactivate,
                       child: Text(
@@ -123,6 +126,7 @@ class MedicationCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ],

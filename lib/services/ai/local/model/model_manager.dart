@@ -77,12 +77,38 @@ class ModelManager {
   /// "paused", so new stream subscribers must not get a stale status.
   ModelStatus? _lastStatus;
 
-  ModelManager(this.model, {Future<int?> Function()? freeSpaceProbe})
-      : _freeSpaceProbe = freeSpaceProbe;
+  /// Optional directory override for tests — bypasses path_provider.
+  final Directory? _modelDirOverride;
+
+  ModelManager(this.model,
+      {Future<int?> Function()? freeSpaceProbe, Directory? modelDir})
+      : _freeSpaceProbe = freeSpaceProbe,
+        _modelDirOverride = modelDir {
+    _migrateLegacyFile();
+  }
+
+  Future<void> _migrateLegacyFile() async {
+    try {
+      final dest = await _modelFile;
+      if (!await dest.exists()) {
+        final legacy = File(p.join((await _modelDir).path, '${model.id}.bin'));
+        if (await legacy.exists()) {
+          await legacy.rename(dest.path);
+        }
+      }
+    } catch (_) {
+      // Ignore migration errors — they will be handled gracefully during engine load.
+    }
+  }
 
   Stream<ModelStatus> get statusStream => _statusController.stream;
 
   Future<Directory> get _modelDir async {
+    final override = _modelDirOverride;
+    if (override != null) {
+      if (!await override.exists()) await override.create(recursive: true);
+      return override;
+    }
     final docs = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(docs.path, 'ai_models'));
     if (!await dir.exists()) await dir.create(recursive: true);
@@ -90,28 +116,75 @@ class ModelManager {
   }
 
   Future<File> get _modelFile async =>
-      File(p.join((await _modelDir).path, '${model.id}.bin'));
+      File(p.join((await _modelDir).path, '${model.id}.litertlm'));
 
   /// Absolute path of the installed model file (for engine load).
-  Future<String> get modelFilePath async => (await _modelFile).path;
+  ///
+  /// Also performs a one-time migration: if a legacy `.bin` file exists from
+  /// a previous build (which saved the file with the wrong extension), it is
+  /// renamed to `.litertlm` so the user does not have to re-download the model.
+  /// Absolute path of the installed model file (for engine load).
+  Future<String> get modelFilePath async {
+    final dest = await _modelFile;
+    if (!await dest.exists()) {
+      final legacy = File(p.join((await _modelDir).path, '${model.id}.bin'));
+      if (await legacy.exists()) {
+        try {
+          await legacy.rename(dest.path);
+        } catch (_) {}
+      }
+    }
+    return dest.path;
+  }
 
   Future<File> get _partialFile async =>
       File(p.join((await _modelDir).path, '${model.id}.part'));
 
-  Future<bool> get isInstalled async => (await _modelFile).exists();
+  /// Path of a model file that is actually on disk: the resolved descriptor's
+  /// file first, then a legacy `.bin` (migrated in place), then any other
+  /// `.litertlm` already in the model dir — e.g. a variant downloaded before
+  /// the resolver started picking a different default. A foreign-variant file
+  /// is still usable; the engine sheds unsupported modalities on load.
+  /// Returns null when nothing is installed.
+  Future<String?> existingModelPath() async {
+    final dir = await _modelDir;
+    final dest = File(p.join(dir.path, '${model.id}.litertlm'));
+    if (await dest.exists()) return dest.path;
+    final legacy = File(p.join(dir.path, '${model.id}.bin'));
+    if (await legacy.exists()) {
+      try {
+        await legacy.rename(dest.path);
+        return dest.path;
+      } catch (_) {
+        return legacy.path;
+      }
+    }
+    try {
+      await for (final f in dir.list()) {
+        if (f is File && f.path.endsWith('.litertlm')) return f.path;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Returns true if any usable model file is installed (the resolved
+  /// descriptor's `.litertlm`, a legacy `.bin`, or a different variant).
+  Future<bool> get isInstalled => existingModelPath().then((p) => p != null);
 
   /// Real on-disk size once installed.
   Future<int?> installedSizeBytes() async {
-    final f = await _modelFile;
-    return await f.exists() ? await f.length() : null;
+    final path = await existingModelPath();
+    if (path == null) return null;
+    return File(path).length();
   }
 
   Future<ModelStatus> currentStatus() async {
     if (_installInFlight != null && _lastStatus != null) return _lastStatus!;
-    final f = await _modelFile;
-    if (await f.exists()) {
+    final present = await existingModelPath();
+    if (present != null) {
       return ModelStatus(
-          state: ModelInstallState.installed, sizeBytes: await f.length());
+          state: ModelInstallState.installed,
+          sizeBytes: await File(present).length());
     }
     final partial = await _partialFile;
     if (await partial.exists()) {
@@ -350,14 +423,21 @@ class ModelManager {
     _client?.close();
   }
 
-  /// Deletes the installed model and any partial download.
-  /// Callers fall back to Basic mode — nothing else breaks.
+  /// Deletes every installed model file and any partial download — including
+  /// variants installed under a different descriptor id, so "remove Smart
+  /// Assistant" really removes it. Callers fall back to Basic mode.
   Future<void> delete() async {
     pause();
-    final f = await _modelFile;
-    if (await f.exists()) await f.delete();
-    final partial = await _partialFile;
-    if (await partial.exists()) await partial.delete();
+    try {
+      await for (final f in (await _modelDir).list()) {
+        if (f is File &&
+            (f.path.endsWith('.litertlm') ||
+                f.path.endsWith('.bin') ||
+                f.path.endsWith('.part'))) {
+          await f.delete();
+        }
+      }
+    } catch (_) {}
     _emit(ModelStatus.notInstalled);
   }
 

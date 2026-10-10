@@ -96,10 +96,10 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           const Divider(),
-          _buildSectionHeader('Phone helper'),
+          _buildSectionHeader('Smart Assistant'),
           ListTile(
             leading: const Icon(Symbols.psychology_rounded),
-            title: const Text('Phone helper'),
+            title: const Text('Smart Assistant'),
             subtitle: const Text('Download, status, delete'),
             trailing: const Icon(Symbols.chevron_right_rounded),
             onTap: () => context.push('/ai-setup'),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -63,7 +64,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                 border: Border.all(color: Colors.amber.shade300),
               ),
               child: const Text(
-                'Phone helper is off. Photos need the helper — turn it on in Settings.',
+                'Smart Assistant is off. Photos need the helper — turn it on in Settings.',
                 style: TextStyle(fontSize: 13),
               ),
             ),
@@ -172,7 +173,7 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
                   border: Border.all(color: Colors.amber.shade300),
                 ),
                 child: const Text(
-                  'Phone helper is off. To analyze photos, install it in Settings → Phone helper.',
+                  'Smart Assistant is off. To analyze photos, install it in Settings → Smart Assistant.',
                   style: TextStyle(fontSize: 13),
                 ),
               ),
@@ -316,9 +317,27 @@ class _SnapCaptureScreenState extends ConsumerState<SnapCaptureScreen> {
       }
     } catch (e) {
       if (mounted) {
-        final message = e is AiUnavailable
-            ? 'Phone helper is off. Install it in Settings → Phone helper to analyze photos.'
-            : 'Error: $e';
+        final String message;
+        final raw = e is AiUnavailable
+            ? e.message
+            : (e is StateError ? e.message : '');
+        if (raw.contains('vision_not_supported')) {
+          message = 'This Smart Assistant cannot read photos. '
+              'Reinstall it in Settings → Smart Assistant.';
+        } else if (e is AiUnavailable) {
+          message = 'Smart Assistant is off. Install it in Settings → Smart Assistant to analyze photos.';
+        } else if (e is StateError &&
+            e.message.startsWith('engine_unavailable')) {
+          message = 'Smart Assistant could not start. '
+              'Try reinstalling it in Settings → Smart Assistant.';
+        } else if (e is TimeoutException) {
+          message = 'Took too long reading the photo. Try again with a clearer image.';
+        } else if (e is StateError &&
+            e.message == 'Could not read the photo — try again.') {
+          message = 'Could not read the photo. Make sure the text is clear and try again.';
+        } else {
+          message = 'Something went wrong. Please try again.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.red),
         );

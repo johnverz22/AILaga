@@ -83,12 +83,11 @@ class DemoDataService {
     // --- Care recipient: "Lola Maria", B22 persona ---------------------
     await _recipients.create(CareRecipientEntity(
       id: recipientId,
-      displayName: 'Lola Maria',
+      displayName: 'Lola Maria (Maria Santos)',
       dateOfBirth: DateTime(1945, 3, 15),
-      allergies: 'Penicillin',
-      importantNotes: 'Type 2 diabetes. High blood pressure.',
-      emergencyInfo: 'Type 2 diabetes. Allergic to penicillin. '
-          'Lives with daughter Ana.',
+      allergies: 'Penicillin, Seafood (mild shrimp allergy)',
+      importantNotes: 'Type 2 Diabetes (diagnosed 2018). Hypertension. Mild arthritis in knees. Prone to dizziness if standing up too fast. Keep her hydrated throughout the day.',
+      emergencyInfo: 'Type 2 Diabetes. Allergic to penicillin. Lives with her daughter Ana. Nearest hospital is St. Luke\'s. Blood type O+.',
       createdAt: now,
       updatedAt: now,
     ));
@@ -97,8 +96,8 @@ class DemoDataService {
     await _contacts.create(FamilyContactEntity(
       id: UuidGenerator.generate(),
       careRecipientId: recipientId,
-      displayName: 'Ana',
-      relationship: 'Daughter',
+      displayName: 'Ana Santos-Reyes',
+      relationship: 'Daughter (Primary Caregiver)',
       phoneNumber: '09171234567',
       isEmergencyContact: true,
       sortOrder: 0,
@@ -108,7 +107,7 @@ class DemoDataService {
     await _contacts.create(FamilyContactEntity(
       id: UuidGenerator.generate(),
       careRecipientId: recipientId,
-      displayName: 'Jun',
+      displayName: 'Jun Santos',
       relationship: 'Son',
       phoneNumber: '09187654321',
       isEmergencyContact: false,
@@ -116,17 +115,30 @@ class DemoDataService {
       createdAt: now,
       updatedAt: now,
     ));
+    await _contacts.create(FamilyContactEntity(
+      id: UuidGenerator.generate(),
+      careRecipientId: recipientId,
+      displayName: 'Dr. Reyes (Cardio)',
+      relationship: 'Cardiologist',
+      phoneNumber: '09228889999',
+      isEmergencyContact: true,
+      sortOrder: 2,
+      createdAt: now,
+      updatedAt: now,
+    ));
 
     // --- Medications ---------------------------------------------------
     final metforminId = UuidGenerator.generate();
     final amlodipineId = UuidGenerator.generate();
+    final rosuvastatinId = UuidGenerator.generate();
+    
     // Start a week ago so history exists; occurrences generated below.
     final startDate = today.subtract(const Duration(days: 7));
     await _medications.createSchedule(MedicationScheduleEntity(
       id: metforminId,
       careRecipientId: recipientId,
       medicationName: 'Metformin 500mg',
-      prescribedInstructions: '1 tablet with food',
+      prescribedInstructions: '1 tablet with meals (Breakfast & Dinner)',
       scheduleTimes: jsonEncode(['08:00', '20:00']),
       startDate: startDate,
       isActive: true,
@@ -137,8 +149,19 @@ class DemoDataService {
       id: amlodipineId,
       careRecipientId: recipientId,
       medicationName: 'Amlodipine 5mg',
-      prescribedInstructions: '1 tablet daily',
+      prescribedInstructions: '1 tablet daily for blood pressure',
       scheduleTimes: jsonEncode(['08:00']),
+      startDate: startDate,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    ));
+    await _medications.createSchedule(MedicationScheduleEntity(
+      id: rosuvastatinId,
+      careRecipientId: recipientId,
+      medicationName: 'Rosuvastatin 20mg',
+      prescribedInstructions: '1 tablet at bedtime for cholesterol',
+      scheduleTimes: jsonEncode(['21:00']),
       startDate: startDate,
       isActive: true,
       createdAt: now,
@@ -147,7 +170,7 @@ class DemoDataService {
 
     // Occurrences for the past week + tomorrow so the dashboard shows
     // today's dose cards and the brief has history.
-    for (final id in [metforminId, amlodipineId]) {
+    for (final id in [metforminId, amlodipineId, rosuvastatinId]) {
       await _medications.generateOccurrences(
           id, startDate, today.add(const Duration(days: 1)));
     }

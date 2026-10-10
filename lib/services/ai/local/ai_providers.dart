@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'local_ai_engine.dart';
 import 'engines/null_engine.dart';
 import 'engines/gemma_litert_engine.dart';
@@ -53,15 +54,21 @@ final resolvedEngineProvider = FutureProvider<LocalAiEngine>((ref) async {
         await manager.isInstalled) {
       final tier = await ref.watch(deviceTierProvider.future);
       if (tier != AiTier.basic) {
-        final caps = await ref.watch(deviceCapabilitiesProvider.future);
-        final descriptor = await ref.watch(kAiModelProvider.future);
-        final backend = _backendFor(descriptor.id, caps);
-        return GemmaLiteRtEngine(
-          modelPath: await manager.modelFilePath,
-          modelId: descriptor.id,
-          deviceTier: tier,
-          preferredBackend: backend,
-        );
+        // Use the file that is actually on disk — it may be a different
+        // variant than the resolved descriptor (e.g. the GPU file installed
+        // before the default changed to generic). The engine sheds any
+        // modality the file doesn't support, so it is still usable.
+        final path = await manager.existingModelPath();
+        if (path != null) {
+          final caps = await ref.watch(deviceCapabilitiesProvider.future);
+          final fileId = p.basenameWithoutExtension(path);
+          return GemmaLiteRtEngine(
+            modelPath: path,
+            modelId: fileId,
+            deviceTier: tier,
+            preferredBackend: _backendFor(fileId, caps),
+          );
+        }
       }
     }
   } catch (_) {
